@@ -1,0 +1,11 @@
+{
+  "_comment": "TEMPLATE: sandbox allowlist for this project's package manager/network needs. Delete sandbox block entirely if defaults are fine.",
+  "sandbox": {
+    "filesystem": {
+      "allowWrite": []
+    },
+    "network": {
+      "allowedDomains": []
+    }
+  }
+}
