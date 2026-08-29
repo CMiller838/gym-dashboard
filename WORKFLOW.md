@@ -141,13 +141,21 @@ Repeat 4a-4c for the next phase until every phase in `docs/roadmap.md` is done.
   what's working, what to change, what to add — pushing back on new-idea scope
   creep the same way `idea-interview` does, since a retro isn't an exemption
   from MVP discipline — and a direct stack-health question.
-- Files changes/new ideas into `docs/FUTURE.md`, tagged by retro date, so the
-  next `idea-interview` pass has a ready-made seed instead of starting cold.
+- Splits results the same way `idea-interview` does: adopted-now ideas go into
+  the outline's feature list (v2 will still re-scope them against MVP
+  discipline), parked ideas go into `docs/FUTURE.md` tagged by retro date so
+  the next `idea-interview` pass has a ready-made seed instead of starting cold.
 - Updates the outline/README if shipped reality has drifted from the original
   plan.
 - If real stack friction came up, tells you to run `@architect` yourself as a
   deliberate follow-up — never triggers it automatically; a stack revisit is
   too disruptive to be a retro side effect.
+
+**Optional**: this is a natural point to run the built-in `security-review`
+skill (reviews pending/recent changes for security issues) before calling a
+version actually shipped — nothing else in this pipeline checks for that.
+Not part of the retro skill itself; invoke it separately if the project
+handles real user data or is going somewhere other than your own machine.
 
 ## 6. v2 — repeat with more features
 

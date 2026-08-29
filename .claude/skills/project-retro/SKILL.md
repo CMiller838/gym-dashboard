@@ -50,10 +50,20 @@ Ask in small batches, multiple rounds as needed — same discipline as
 
 ## Step 4: File the results
 
-- **Changes and new ideas**: append to `docs/FUTURE.md`, following the same
-  format as `idea-interview` (what it is, why it wasn't done now, a concrete
-  revisit trigger — not "someday"). Mark entries that came from this retro
-  distinctly, e.g. under a `## From v1 retro (<date>)` heading, so a later
+A retro item is either **adopted now** or **parked** — same either/or as
+`idea-interview`'s nice-to-have-vs-parked rule, and it decides which file it
+goes in:
+
+- **Adopted now** (the user wants it built, soon, as part of v2's own
+  scoping): add it to the outline's feature list, not `docs/FUTURE.md` —
+  `docs/FUTURE.md` is only for things *not* currently planned. It's fine for
+  it to land as a new must-have or nice-to-have candidate; `idea-interview`
+  will still re-scope the whole must-have list against MVP discipline when v2
+  starts, this isn't the final word on it.
+- **Parked** (deferred, out of scope for now): append to `docs/FUTURE.md`,
+  following the same format as `idea-interview` (what it is, why it wasn't
+  done now, a concrete revisit trigger — not "someday"). Group this retro's
+  parked entries under a `## From v1 retro (<date>)` heading, so a later
   `idea-interview` pass can find them as a ready-made starting point instead
   of re-deriving them from scratch.
 - **Outline drift**: if Step 2 found must-haves that shipped differently than
@@ -64,7 +74,9 @@ Ask in small batches, multiple rounds as needed — same discipline as
   agent yourself — tell the user plainly what the concern is and recommend
   they run `@architect` to reconsider it as a deliberate, separate step. A
   stack revisit is disruptive enough that it should never happen as a side
-  effect of a retro.
+  effect of a retro. If Step 3 surfaced no real friction (the common case),
+  there's nothing to file for this — don't manufacture a concern to have
+  something to say.
 
 ## Step 5: Hand off
 

@@ -39,14 +39,26 @@ Then fill in every `<!-- TEMPLATE -->` / `TEMPLATE:` marker in `CLAUDE.md`,
   main/master), `auto-lint.sh` (template: syntax-check + run the paired test
   right after an edit — fill in the language check and the file→test mapping).
 - `.claude/settings.json` / `settings.local.json` — sandbox allowlist stub, a
-  starter permissions allow/deny/ask list, and the hook wiring above.
+  starter permissions allow/deny/ask list, the hook wiring above, and
+  `skillOverrides` turning `task-observer`, `strategic-compact`, and
+  `verification-loop` off by default (see note below).
 - `.claude/skills/` — copied verbatim, already project-agnostic:
   `search-first` (research existing tools/patterns before writing custom code),
   `strategic-compact` (suggests manual compaction at phase boundaries instead of
-  arbitrary auto-compact), `task-observer` (watches for reusable-skill-worthy
-  patterns during a session), `verification-loop` (verify work before claiming
-  done), `audit-claude-md` (keeps CLAUDE.md terse — run it periodically),
+  arbitrary auto-compact — **off by default**, see below), `task-observer`
+  (watches for reusable-skill-worthy patterns during a session — **off by
+  default**), `verification-loop` (verify work before claiming done — **off by
+  default**), `audit-claude-md` (keeps CLAUDE.md terse — run it periodically),
   `excalidraw-diagram`.
+
+  **Why off by default**: the source project this template comes from disabled
+  all three via its own `skillOverrides` — that's a real, lived preference
+  worth carrying forward rather than a neutral default. This template's build
+  loop already has an explicit review gate (`/code-review`/`/simplify` before
+  each commit, roadmap-gating for exit conditions) and its own manual-compact
+  judgment, which likely made these three redundant noise on top rather than
+  additive. Re-enable any of them per-project by removing its line from
+  `skillOverrides` in `.claude/settings.local.json` if you find the opposite.
 - `.claude/skills/idea-interview/` — run this *before* `planner`, at the very
   start of a project when there's no feature list yet. Multi-round interview
   (problem, users, must-haves vs. nice-to-haves, constraints, non-goals) that
