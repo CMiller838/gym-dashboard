@@ -52,10 +52,15 @@ section — keep it short, keep it non-obvious. -->
      `.claude/specs/phaseN_spec.md` and the phase's tasks in `tasks.md`. Planner
      also does the "is there an existing library for this" check at plan time —
      the build step below shouldn't need to re-research it.
-   - **Build** — TDD (failing test first) for logic files, rapid-prototype for UI
-     (`ui-prototyper` in build mode for assigned UI tasks; in manual-testing
-     ideation mode, ideas only — it must not edit files you're mid-test against).
-     Keep it ponytail-lazy: the smallest working diff, no speculative abstraction.
+   - **Build** — TDD (failing test first) for logic files. Keep it ponytail-lazy:
+     the smallest working diff, no speculative abstraction.
+   - **UI specifically**: `ui-prototyper` generates standalone mockup variants
+     (fake data, every button/state present) in the prototypes directory —
+     never the real app files. Pick one, then run `restyle-from-prototype` to
+     carry its design into the real templates/components. During manual
+     testing, `ui-prototyper` can view the running app via a browser MCP (see
+     README) to ground new mockup ideas, but still never edits files you're
+     mid-test against.
    - **`/code-review` or `/simplify`** on the phase's diff before committing —
      TDD proves the tests you wrote pass, not that you didn't over-build around
      them; this catches both correctness bugs and creep.
