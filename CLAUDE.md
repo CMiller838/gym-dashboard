@@ -39,38 +39,9 @@ section — keep it short, keep it non-obvious. -->
 
 ## Project lifecycle (start to v2)
 
-1. **`idea-interview` skill** — before any feature list exists. Interviews to a
-   project outline (in README or a standalone outline doc), actively pushes back
-   on scope creep to keep must-haves to an actual MVP, parks everything else into
-   `docs/FUTURE.md` with a revisit trigger.
-2. **`@architect`** — reads the outline (primary) and `docs/FUTURE.md` (secondary,
-   don't architect for parked ideas), picks a stack, writes `docs/ARCHITECTURE.md`.
-3. **`@planner` roadmap mode** — reads the outline's must-have list, groups it into
-   phases (as few as the dependency ordering allows), writes `docs/roadmap.md`.
-4. **Per phase, repeat until the roadmap is done:**
-   - **`@planner Phase N`** — decision-gated interview, then writes
-     `.claude/specs/phaseN_spec.md` and the phase's tasks in `tasks.md`. Planner
-     also does the "is there an existing library for this" check at plan time —
-     the build step below shouldn't need to re-research it.
-   - **Build** — TDD (failing test first) for logic files. Keep it ponytail-lazy:
-     the smallest working diff, no speculative abstraction.
-   - **UI specifically**: `ui-prototyper` generates standalone mockup variants
-     (fake data, every button/state present) in the prototypes directory —
-     never the real app files. Pick one, then run `restyle-from-prototype` to
-     carry its design into the real templates/components. During manual
-     testing, `ui-prototyper` can view the running app via a browser MCP (see
-     README) to ground new mockup ideas, but still never edits files you're
-     mid-test against.
-   - **`/code-review` or `/simplify`** on the phase's diff before committing —
-     TDD proves the tests you wrote pass, not that you didn't over-build around
-     them; this catches both correctness bugs and creep.
-   - Mark `tasks.md` items `- [x]` once their tests pass, commit
-     (`.claude/rules/roadmap-gating.md` auto-aligns `tasks.md`/`docs/roadmap.md`
-     in the same commit).
-5. **`project-retro` skill** — once every phase is done. Reviews shipped state
-   against the outline, interviews for changes/additions, files them into
-   `docs/FUTURE.md`, flags (but doesn't itself trigger) a stack revisit via
-   `@architect` if real friction came up.
-6. **v2** — manually re-run the chain: `idea-interview` (seeded from the retro's
-   `docs/FUTURE.md` entries) → `@architect` (only if the retro flagged a stack
-   concern) → `@planner` roadmap mode → step 4's per-phase loop again.
+Full detail, including exactly what each step reads/writes and why: `WORKFLOW.md`.
+Short version: `idea-interview` (MVP outline + FUTURE.md) → `@architect` (stack →
+ARCHITECTURE.md) → `@planner` roadmap mode (phases) → per phase: `@planner Phase N`
+(spec + tasks.md) → build (TDD + ponytail; UI via `ui-prototyper` →
+`restyle-from-prototype`) → `/code-review` or `/simplify` → commit → repeat until the
+roadmap is done → `project-retro` → v2 repeats the chain, seeded from the retro.

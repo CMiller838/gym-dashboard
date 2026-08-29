@@ -7,7 +7,7 @@ stripped out or replaced with `<!-- TEMPLATE -->` placeholders.
 ## Use it
 
 ```
-cp -r generic-claude-setup/.claude generic-claude-setup/CLAUDE.md /path/to/new-project/
+cp -r generic-claude-setup/.claude generic-claude-setup/CLAUDE.md generic-claude-setup/WORKFLOW.md /path/to/new-project/
 chmod +x /path/to/new-project/.claude/hooks/*.sh
 ```
 
@@ -101,6 +101,9 @@ grounding prototype ideas in the real, running UI.
   — `ui-prototyper` creates it on first use; nothing to seed ahead of time.
 
 ## Full project lifecycle
+
+See `WORKFLOW.md` for the complete pipeline — what each step reads, writes,
+and pushes back on, from `idea-interview` through v2. Diagram:
 
 ```
 idea-interview                    (MVP outline + docs/FUTURE.md)
