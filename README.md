@@ -99,21 +99,34 @@ Then fill in every `<!-- TEMPLATE -->` / `TEMPLATE:` marker in `CLAUDE.md`,
   interactivity. `disable-model-invocation: true` — invoke it explicitly by
   name, since "restyle this" is ambiguous without a chosen prototype in hand.
 
-## Browser MCP setup (optional, for ui-prototyper's manual-testing mode)
+## MCP servers and CLI tools
 
-To let `ui-prototyper` actually see the running app during a manual test pass
-instead of working from your description alone, add a browser automation MCP
-server once per machine or per project:
+One hard requirement, two optional MCP servers — nothing else in this
+pipeline needs an MCP, and adding one "just in case" is the kind of
+speculative setup this template otherwise avoids.
 
-```
-claude mcp add playwright -- npx -y @playwright/mcp@latest
-```
-
-Then `/mcp` to confirm it's connected. `ui-prototyper`'s instructions already
-check for tools prefixed `mcp__playwright__` (or similar) and use them when
-present, and degrade gracefully — working from your verbal description — when
-they're not. Nothing else in this template requires this; it's purely for
-grounding prototype ideas in the real, running UI.
+- **`gh` (GitHub CLI)** — required, not an MCP. Needed the moment any step
+  touches GitHub: creating the repo, opening PRs, checking issues. Confirm
+  it's authenticated once per machine: `gh auth status` (or `gh auth login`
+  if not). Nothing in this template runs `gh` automatically — it's a
+  dependency other tooling (or you) may reach for, not a background process.
+- **`context7`** (optional) — up-to-date, version-correct docs for whatever
+  library `@planner`'s research-before-spec step or the build phase is about
+  to use, instead of relying on training-data knowledge that may be stale for
+  a fast-moving library. Add it once: `claude mcp add context7 -- npx -y
+  @upstash/context7-mcp`, then `/mcp` to confirm. Genuinely useful specifically
+  because `@planner` already does a "does an existing library solve this"
+  check at plan time (see `WORKFLOW.md` step 4a) — context7 makes that check
+  accurate instead of guessed.
+- **Browser automation MCP** (optional, for `ui-prototyper`'s manual-testing
+  mode) — lets it actually see the running app during a manual test pass
+  instead of working from your description alone:
+  ```
+  claude mcp add playwright -- npx -y @playwright/mcp@latest
+  ```
+  `ui-prototyper`'s instructions already check for tools prefixed
+  `mcp__playwright__` and degrade gracefully — working from your verbal
+  description — when it's not configured.
 
 ## Not included (write these fresh per project)
 

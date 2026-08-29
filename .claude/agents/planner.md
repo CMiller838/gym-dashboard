@@ -62,9 +62,11 @@ Research-before-spec: before you write any implementation approach into the spec
 whether an existing dependency already installed in this project, a stdlib module, or a
 well-known library solves it — don't have the spec assume custom code where a one-line library
 call would do. This check happens here, once, at plan time; the builder should not need to
-re-research it while executing your spec. If a new dependency looks warranted, flag it as a
-decision for the user (this project's convention is: never add one without confirming first),
-don't just spec it in silently.
+re-research it while executing your spec. If a `context7`-family MCP tool is available, use it
+to confirm the library's current API surface before speccing calls against it — cheaper than
+the builder discovering mid-implementation that training-data knowledge of the API was stale.
+If a new dependency looks warranted, flag it as a decision for the user (this project's
+convention is: never add one without confirming first), don't just spec it in silently.
 
 STAGE 2: The Options-First Interview (Simplifying Choices)
 
