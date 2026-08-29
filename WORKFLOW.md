@@ -151,11 +151,21 @@ Repeat 4a-4c for the next phase until every phase in `docs/roadmap.md` is done.
   deliberate follow-up — never triggers it automatically; a stack revisit is
   too disruptive to be a retro side effect.
 
-**Optional**: this is a natural point to run the built-in `security-review`
-skill (reviews pending/recent changes for security issues) before calling a
-version actually shipped — nothing else in this pipeline checks for that.
-Not part of the retro skill itself; invoke it separately if the project
-handles real user data or is going somewhere other than your own machine.
+**Two more checkpoints at this same point, both explicit/manual — neither
+auto-triggers, so invoke them by name:**
+
+- **`security-review`** (built-in) — reviews pending/recent changes for
+  security issues before calling a version actually shipped. Run it if the
+  project handles real user data or is going anywhere other than your own
+  machine; skip it for a purely local/personal tool.
+- **`task-observer`** — a retrospective pass over the whole version's session
+  history (not per-task; it deliberately does not auto-trigger mid-session,
+  since that was tried and found noisy relative to its value) looking for
+  patterns, repeated corrections, or workflow friction worth turning into a
+  new skill or a fix to an existing one. Run it once per version, here, after
+  `project-retro` — feeds skill improvements back into this same template
+  (`CLAUDE.md`, `.claude/skills/`, `.claude/agents/`) the same way
+  `project-retro` feeds feature ideas into the outline.
 
 ## 6. v2 — repeat with more features
 

@@ -40,8 +40,9 @@ Then fill in every `<!-- TEMPLATE -->` / `TEMPLATE:` marker in `CLAUDE.md`,
   right after an edit — fill in the language check and the file→test mapping).
 - `.claude/settings.json` — sandbox allowlist stub, a starter permissions
   allow/deny/ask list, the hook wiring above, and `skillOverrides` turning
-  `task-observer`, `strategic-compact`, and `verification-loop` off by default
-  (see note below). **This is the one that matters** — `settings.local.json`
+  `strategic-compact` and `verification-loop` off by default (see note below;
+  `task-observer` is handled differently — see below). **This is the one that
+  matters** — `settings.local.json`
   is gitignored by Claude Code convention on most setups (confirmed globally
   ignored via `~/.config/git/ignore` on the machine this template was built
   on), so anything put there never travels with the repo. Everything meant to
@@ -52,20 +53,28 @@ Then fill in every `<!-- TEMPLATE -->` / `TEMPLATE:` marker in `CLAUDE.md`,
 - `.claude/skills/` — copied verbatim, already project-agnostic:
   `search-first` (research existing tools/patterns before writing custom code),
   `strategic-compact` (suggests manual compaction at phase boundaries instead of
-  arbitrary auto-compact — **off by default**, see below), `task-observer`
-  (watches for reusable-skill-worthy patterns during a session — **off by
-  default**), `verification-loop` (verify work before claiming done — **off by
-  default**), `audit-claude-md` (keeps CLAUDE.md terse — run it periodically),
-  `excalidraw-diagram`.
+  arbitrary auto-compact — **off by default**, see below), `verification-loop`
+  (verify work before claiming done — **off by default**), `audit-claude-md`
+  (keeps CLAUDE.md terse — run it periodically), `excalidraw-diagram`.
 
-  **Why off by default**: the source project this template comes from disabled
-  all three via its own `skillOverrides` — that's a real, lived preference
-  worth carrying forward rather than a neutral default. This template's build
-  loop already has an explicit review gate (`/code-review`/`/simplify` before
-  each commit, roadmap-gating for exit conditions) and its own manual-compact
-  judgment, which likely made these three redundant noise on top rather than
-  additive. Re-enable any of them per-project by removing its line from
-  `skillOverrides` in `.claude/settings.json` if you find the opposite.
+  **Why `strategic-compact`/`verification-loop` are off by default**: the
+  source project this template comes from disabled both (plus `task-observer`)
+  via its own `skillOverrides` — a real, lived preference worth carrying
+  forward. This template's build loop already has an explicit review gate
+  (`/code-review`/`/simplify` before each commit, roadmap-gating for exit
+  conditions) and its own manual-compact judgment, which likely made these two
+  redundant noise on top rather than additive. Re-enable either per-project by
+  removing its line from `skillOverrides` in `.claude/settings.json` if you
+  find the opposite.
+- `.claude/skills/task-observer/` — also disabled originally, but re-enabled
+  here with a narrower scope rather than left off: its upstream description
+  pushes hard for auto-triggering at the start of every session, which is
+  almost certainly *why* it got turned off (noise, not lack of value). This
+  copy sets `disable-model-invocation: true` instead and rewrites its trigger
+  to "once per version, right after `project-retro`" — a retrospective mining
+  pass over that whole version's session history for skill-improvement
+  patterns, invoked by name rather than firing on every task. See `WORKFLOW.md`
+  step 5.
 - `.claude/skills/idea-interview/` — run this *before* `planner`, at the very
   start of a project when there's no feature list yet. Multi-round interview
   (problem, users, must-haves vs. nice-to-haves, constraints, non-goals) that

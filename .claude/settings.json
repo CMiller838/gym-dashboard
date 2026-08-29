@@ -29,7 +29,6 @@
     "defaultMode": "auto"
   },
   "skillOverrides": {
-    "task-observer": "off",
     "strategic-compact": "off",
     "verification-loop": "off"
   },

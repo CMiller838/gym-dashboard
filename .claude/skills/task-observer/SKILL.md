@@ -1,19 +1,17 @@
 ---
 name: task-observer
+disable-model-invocation: true
 description: >
-  Monitors task execution for skill improvement opportunities. Use this skill
-  during ANY multi-step task, agentic workflow, or substantive work session where
-  the agent is using tools and producing deliverables. It captures patterns, user
-  corrections, workflow insights, and methodology worth preserving as reusable
-  skills. Also triggers during post-task feedback discussions and when the user
-  explicitly mentions skill observations, improvements, the observation log,
-  skill taxonomy, or asks the agent to watch for skill opportunities. Also known
-  as "One Skill to Rule Them All" — trigger on this phrase too. IMPORTANT:
-  this skill should be invoked at the start of every task-oriented session — if
-  you are about to use tools to produce deliverables, invoke this skill first.
-  For reliable activation, pair this description with a CLAUDE.md instruction
-  or harness-level session-start hook (see Recommended Activation Setup) —
-  description-level matching alone is not enforceable.
+  Retrospective skill-improvement pass over everything that happened during
+  one finished version of the project — NOT a per-session or per-task
+  monitor. Run this once per version, right after `project-retro`, before
+  starting v2: it mines the whole version's session history for patterns,
+  repeated corrections, and workflow insights worth turning into a new skill
+  or fixing in an existing one. Invoke explicitly by name ("run task-observer",
+  "what skill improvements came out of this version") — it does not
+  auto-trigger mid-session, deliberately, since that was found to be noisy
+  relative to its value here. Also known as "One Skill to Rule Them All" if
+  the user uses that phrase to invoke it explicitly.
 ---
 
 # Task Observer — Continuous Skill Discovery & Improvement
