@@ -82,6 +82,12 @@ already has one; otherwise create it. Each entry needs:
 
 Append to the existing file if one exists — never overwrite prior parked ideas.
 
+An idea is either a nice-to-have (in the outline, planned for later in this
+project) or parked (in `docs/FUTURE.md`, not currently planned at all) — not
+both. If it's genuinely a "yes, eventually, once X" item, put it in
+`docs/FUTURE.md` only and leave it out of the outline's nice-to-have list, so
+the outline reflects only what's actually in scope for this project's roadmap.
+
 ## Single-idea interview (adding to an existing project)
 
 Used when a project outline already exists and the user has one new idea to
