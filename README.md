@@ -38,10 +38,17 @@ Then fill in every `<!-- TEMPLATE -->` / `TEMPLATE:` marker in `CLAUDE.md`,
 - `.claude/hooks/` — `block-dangerous.sh` (denies `git push --force` to
   main/master), `auto-lint.sh` (template: syntax-check + run the paired test
   right after an edit — fill in the language check and the file→test mapping).
-- `.claude/settings.json` / `settings.local.json` — sandbox allowlist stub, a
-  starter permissions allow/deny/ask list, the hook wiring above, and
-  `skillOverrides` turning `task-observer`, `strategic-compact`, and
-  `verification-loop` off by default (see note below).
+- `.claude/settings.json` — sandbox allowlist stub, a starter permissions
+  allow/deny/ask list, the hook wiring above, and `skillOverrides` turning
+  `task-observer`, `strategic-compact`, and `verification-loop` off by default
+  (see note below). **This is the one that matters** — `settings.local.json`
+  is gitignored by Claude Code convention on most setups (confirmed globally
+  ignored via `~/.config/git/ignore` on the machine this template was built
+  on), so anything put there never travels with the repo. Everything meant to
+  apply project-wide belongs in `settings.json`; use `settings.local.json`
+  only for genuinely personal, per-machine overrides you don't want shared
+  (e.g. your own `model` pin or thinking-token budget) and expect to recreate
+  it yourself on each machine/clone.
 - `.claude/skills/` — copied verbatim, already project-agnostic:
   `search-first` (research existing tools/patterns before writing custom code),
   `strategic-compact` (suggests manual compaction at phase boundaries instead of
@@ -58,7 +65,7 @@ Then fill in every `<!-- TEMPLATE -->` / `TEMPLATE:` marker in `CLAUDE.md`,
   each commit, roadmap-gating for exit conditions) and its own manual-compact
   judgment, which likely made these three redundant noise on top rather than
   additive. Re-enable any of them per-project by removing its line from
-  `skillOverrides` in `.claude/settings.local.json` if you find the opposite.
+  `skillOverrides` in `.claude/settings.json` if you find the opposite.
 - `.claude/skills/idea-interview/` — run this *before* `planner`, at the very
   start of a project when there's no feature list yet. Multi-round interview
   (problem, users, must-haves vs. nice-to-haves, constraints, non-goals) that
