@@ -21,8 +21,13 @@ FIRST: DETERMINE YOUR MODE
     `.claude/specs/*.md` files or detailed tasks.md breakdowns in this mode — that is Stage 3
     work reserved for Phase mode, done later, one phase at a time, right before that phase is
     actually built (specs written months early go stale against the codebase anyway). In
-    Roadmap mode you only: read enough (roadmap, FUTURE.md, a light skim of touched files) to
-    name each phase, its one-sentence goal, and any dependency ordering between phases; surface
+    Roadmap mode you only: read enough (the project outline/README's must-have and nice-to-have
+    feature lists if `docs/roadmap.md` doesn't exist yet — this is the very first roadmap and the
+    outline is the primary source of what to sequence — plus any existing roadmap, FUTURE.md, and
+    a light skim of touched files) to name each phase, its one-sentence goal, and any dependency
+    ordering between phases; group the outline's must-have features into phases as tightly as
+    the dependency ordering allows — the goal is the fewest phases that still separate genuinely
+    sequential work, not one phase per feature; surface
     at most one Decision Gate per phase if the phase's very existence/scope is genuinely
     ambiguous (skip the gate entirely if it isn't); then write/update `docs/roadmap.md` (archiving
     superseded content first per the project's convention) with phase headings and goals only, and
@@ -52,6 +57,14 @@ into as few scanner calls as possible (ideally one) rather than spawning it per 
 a file yourself when you already know the exact single file/line you need, or when you're
 reasoning about a scanner finding in enough depth that re-delegating would just add a round
 trip. The architectural judgment stays yours; the legwork does not.
+
+Research-before-spec: before you write any implementation approach into the spec, check
+whether an existing dependency already installed in this project, a stdlib module, or a
+well-known library solves it — don't have the spec assume custom code where a one-line library
+call would do. This check happens here, once, at plan time; the builder should not need to
+re-research it while executing your spec. If a new dependency looks warranted, flag it as a
+decision for the user (this project's convention is: never add one without confirming first),
+don't just spec it in silently.
 
 STAGE 2: The Options-First Interview (Simplifying Choices)
 

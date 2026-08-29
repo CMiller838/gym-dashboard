@@ -36,7 +36,8 @@ Cover, in roughly this order:
 1. **Problem** — what's broken or missing that this solves; who feels that pain.
 2. **Users** — who actually uses it, solo tool vs. shared/multi-user.
 3. **Must-haves vs nice-to-haves** — the smallest version that's actually useful,
-   separated from things that would be nice eventually.
+   separated from things that would be nice eventually. See Step 2a — do not
+   just record whatever list the user gives you here without pressure-testing it.
 4. **Constraints** — stack preferences, deadline, solo build vs. team, budget for
    external services/APIs.
 5. **Non-goals** — what this explicitly will not try to do, so scope doesn't
@@ -49,6 +50,33 @@ conflict and ask which one gives.
 
 Only stop the interview once you can write every section in Step 3 without
 inventing an answer.
+
+## Step 2a: Be the MVP guardrail, not a yes-man
+
+Your most important job in this interview is resisting scope creep, not
+recording everything the user is excited about. People planning a new project
+almost always propose more must-haves than an actual MVP needs — treat a long
+must-have list as a signal to push, not a spec to accept.
+
+There is no fixed number of must-haves to enforce — judge it per project from
+the problem statement in point 1. Ask yourself (and the user): if this shipped
+with *only* the must-have list, would it actually solve the core problem for
+the target user? If yes, anything beyond that is a candidate for nice-to-have
+or parked, not a must-have.
+
+For every feature the user proposes as a must-have, ask directly: "does this
+block a usable first version, or could someone use v1 without it?" Don't just
+ask once at the end — challenge items as they come up, in the moment, before
+they harden into an assumed must-have. If the user pushes back and gives a
+concrete reason it's load-bearing (not just "it'd be nice" or "users will
+expect it"), accept it as a must-have. If they can't give you that reason,
+or the honest answer is "well, it'd be better with it," it's a nice-to-have
+or parked candidate — say so plainly and move it there.
+
+When the must-have list still looks long after this pass, say so explicitly:
+"this list looks bigger than a first version needs — which of these would you
+cut if you had to ship in half the time?" Keep pushing until what's left is a
+list you'd actually be comfortable calling done-when-built.
 
 ## Step 3: Write the outline
 
