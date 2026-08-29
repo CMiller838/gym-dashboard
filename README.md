@@ -42,6 +42,13 @@ Then fill in every `<!-- TEMPLATE -->` / `TEMPLATE:` marker in `CLAUDE.md`,
   patterns during a session), `verification-loop` (verify work before claiming
   done), `audit-claude-md` (keeps CLAUDE.md terse — run it periodically),
   `excalidraw-diagram`.
+- `.claude/skills/idea-interview/` — run this *before* `planner`, at the very
+  start of a project when there's no feature list yet. Multi-round interview
+  (problem, users, must-haves vs. nice-to-haves, constraints, non-goals) that
+  writes a project outline (into README.md or a standalone file, whichever
+  fits) and parks deferred ideas into `docs/FUTURE.md` with a revisit trigger.
+  Re-invoke it later to fold in one new idea without repeating the full
+  interview. Feeds `planner`'s roadmap mode once it's done.
 
 ## Not included (write these fresh per project)
 
@@ -53,6 +60,11 @@ Then fill in every `<!-- TEMPLATE -->` / `TEMPLATE:` marker in `CLAUDE.md`,
   know your dev server's actual start command; not worth templating.
 - **`.claude/specs/`, `docs/roadmap.md`, `tasks.md`** — these are *outputs* of
   the `planner` agent's workflow, not something to seed ahead of time.
+
+## Project start order
+
+`idea-interview` → `planner` (roadmap mode) → `planner` (phase mode, per phase).
+Skip `idea-interview` if you already walk in with a clear feature list.
 
 ## The planner workflow (worth understanding, not just copying)
 
