@@ -30,6 +30,13 @@
     font-weight:600; color:var(--muted); background:var(--card); border:1px solid var(--border);}
   .tab.active{color:#fff; background:var(--accent); border-color:var(--accent);}
 
+  .resume-banner{margin:14px 16px 0; background:linear-gradient(135deg,#ff5a1f,#ff7a3f);
+    border-radius:14px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center;}
+  .resume-banner .txt{font-weight:700; font-size:14px; color:#fff;}
+  .resume-banner .sub2{font-size:12px; color:rgba(255,255,255,0.85); margin-top:2px;}
+  .resume-banner button{background:#fff; color:#ff5a1f; border:none; border-radius:10px;
+    padding:8px 14px; font-weight:800; font-size:13px;}
+
   .stats-row{display:flex; gap:10px; padding:14px 16px 4px;}
   .stat{flex:1; background:var(--card); border:1px solid var(--border); border-radius:14px;
     padding:14px 10px; text-align:center;}
@@ -62,8 +69,12 @@
 
   .routine-card{background:var(--card); border:1px solid var(--border); border-radius:16px;
     padding:16px; margin-bottom:12px;}
+  .routine-card .rtop{display:flex; justify-content:space-between; align-items:center; gap:10px;}
   .routine-card .rname{font-weight:700; font-size:16px;}
   .routine-card .rmeta{color:var(--muted); font-size:12px; margin-top:2px;}
+  .startbtn{background:var(--accent); color:#fff; border:none; border-radius:10px;
+    padding:10px 16px; font-weight:700; font-size:13px; white-space:nowrap;}
+  .startbtn:disabled{opacity:0.5;}
 
   .empty{color:var(--muted); text-align:center; padding:40px 20px; font-size:14px;}
   .loading{color:var(--muted); text-align:center; padding:40px 20px; font-size:14px;}
@@ -80,20 +91,67 @@
 
   .toolbar{position:fixed; bottom:0; left:0; right:0; background:rgba(13,13,15,0.95);
     backdrop-filter:blur(10px); border-top:1px solid var(--border); padding:10px 16px;
-    display:flex; justify-content:center; gap:16px;}
+    display:flex; justify-content:center; gap:16px; z-index:20;}
   .toolbar button{background:none; border:none; color:var(--muted); font-size:12px; padding:6px 12px;}
   .toolbar button.reset{color:var(--danger);}
+
+  /* --- Active workout screen --- */
+  .workout-header{position:sticky; top:0; z-index:10; background:rgba(13,13,15,0.95);
+    backdrop-filter:blur(10px); padding:14px 16px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center;}
+  .workout-header .wname{font-weight:800; font-size:17px;}
+  .workout-header .wtimer{color:var(--accent2); font-size:12px; font-weight:700; margin-top:2px;}
+  .workout-header .discardbtn{color:var(--danger); background:none; border:none; font-size:20px; padding:4px 8px;}
+
+  .wex-card{background:var(--card); border:1px solid var(--border); border-radius:16px;
+    margin:12px 16px; padding:16px;}
+  .wex-card.done{border-color:rgba(61,220,132,0.4);}
+  .wex-card .wex-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  .wex-card .wex-name{font-weight:700; font-size:16px;}
+  .wex-card .wex-target{color:var(--muted); font-size:12px; margin-top:2px;}
+  .wex-card .wex-last{background:var(--card2); border-radius:10px; padding:8px 10px;
+    margin-top:10px; font-size:12px; color:var(--muted);}
+  .wex-card .wex-last b{color:var(--text);}
+
+  .setrow{display:flex; align-items:center; gap:8px; margin-top:8px;}
+  .setrow .setnum{width:22px; text-align:center; color:var(--muted); font-size:12px; font-weight:700;}
+  .setrow input{flex:1; background:var(--card2); border:1px solid var(--border); color:var(--text);
+    border-radius:10px; padding:10px 8px; font-size:14px; text-align:center; min-width:0;}
+  .setrow .unit{color:var(--muted); font-size:11px; width:26px;}
+  .setrow .logbtn{background:var(--accent2); color:#0d0d0f; border:none; border-radius:10px;
+    width:38px; height:38px; font-weight:900; font-size:16px; flex-shrink:0;}
+  .setrow.logged{opacity:0.55;}
+  .setrow.logged input{background:transparent; border-color:transparent;}
+  .setrow .delbtn{background:none; border:none; color:var(--danger); font-size:16px; width:24px; flex-shrink:0;}
+
+  .addsetbtn{margin-top:10px; width:100%; padding:9px; border-radius:10px; border:1px dashed var(--border);
+    background:none; color:var(--muted); font-size:13px; font-weight:600;}
+
+  .finish-bar{position:fixed; bottom:0; left:0; right:0; background:rgba(13,13,15,0.97);
+    backdrop-filter:blur(10px); border-top:1px solid var(--border); padding:12px 16px; z-index:20;}
+  .finish-bar button{width:100%; padding:15px; border-radius:14px; border:none;
+    background:var(--accent); color:#fff; font-weight:800; font-size:15px;}
+
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:30;
+    display:flex; align-items:flex-end; justify-content:center;}
+  .overlay-sheet{background:var(--card); width:100%; max-width:560px; border-radius:20px 20px 0 0;
+    padding:20px; max-height:70vh; overflow-y:auto;}
+  .overlay-sheet h3{margin:0 0 14px; font-size:16px;}
+  .overlay-sheet .opt{background:var(--card2); border-radius:12px; padding:14px; margin-bottom:8px;
+    font-weight:600; border:1px solid var(--border);}
+  .overlay-sheet .cancel{width:100%; padding:12px; margin-top:8px; background:none; border:none;
+    color:var(--muted); font-size:14px;}
 </style>
 </head>
 <body>
 <div id="app">
-  <header class="topbar">
+  <header class="topbar" id="topHeader">
     <h1>🏋️ Gym Log</h1>
     <div class="sub" id="headerSub">syncing…</div>
   </header>
   <div id="content"></div>
 </div>
-<div class="toolbar">
+<div class="toolbar" id="mainToolbar">
   <button onclick="location.reload()">↻ Refresh</button>
   <button class="reset" onclick="resetToken()">⎋ Change token</button>
 </div>
@@ -101,18 +159,31 @@
 <script>
 const API = "https://wger.de/api/v2";
 const TOKEN_KEY = "wger_api_token";
+const ACTIVE_KEY = "active_workout";
 let token = localStorage.getItem(TOKEN_KEY);
 let exerciseCache = JSON.parse(localStorage.getItem("exercise_name_cache") || "{}");
 let activeTab = "history";
+let allLogsCache = null; // populated on normal render, used for "last time" lookups
+let timerInterval = null;
 
 function saveExerciseCache(){ localStorage.setItem("exercise_name_cache", JSON.stringify(exerciseCache)); }
+function getActive(){ try{ return JSON.parse(localStorage.getItem(ACTIVE_KEY) || "null"); }catch(e){ return null; } }
+function setActive(w){ localStorage.setItem(ACTIVE_KEY, JSON.stringify(w)); }
+function clearActive(){ localStorage.removeItem(ACTIVE_KEY); }
 
-async function api(path){
-  const res = await fetch(`${API}${path}`, { headers: { "Authorization": `Token ${token}` }});
-  if(res.status === 401 || res.status === 403){ throw new Error("auth"); }
-  if(!res.ok){ throw new Error("http_" + res.status); }
+async function apiRaw(path, opts){
+  const res = await fetch(`${API}${path}`, Object.assign({
+    headers: Object.assign({ "Authorization": `Token ${token}`, "Content-Type": "application/json" }, (opts&&opts.headers)||{})
+  }, opts||{}));
+  if(res.status === 401 || res.status === 403) throw new Error("auth");
+  if(!res.ok){ const t = await res.text().catch(()=> ""); throw new Error("http_" + res.status + ":" + t.slice(0,200)); }
+  if(res.status === 204) return null;
   return res.json();
 }
+async function api(path){ return apiRaw(path); }
+async function apiPost(path, body){ return apiRaw(path, { method:"POST", body: JSON.stringify(body) }); }
+async function apiPatch(path, body){ return apiRaw(path, { method:"PATCH", body: JSON.stringify(body) }); }
+async function apiDelete(path){ return apiRaw(path, { method:"DELETE" }); }
 
 async function apiAll(path){
   let results = [];
@@ -150,14 +221,19 @@ function fmtDate(d){
   const dt = new Date(d);
   return dt.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
 }
-
 function daysAgo(dateStr){
   const d = new Date(dateStr);
   const now = new Date();
   return Math.floor((now - d) / 86400000);
 }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function nowTimeISO(){
+  const d = new Date();
+  return d.toTimeString().slice(0,8);
+}
 
 function showSetup(errMsg){
+  document.getElementById("mainToolbar").style.display = "flex";
   document.getElementById("headerSub").textContent = "not connected";
   document.getElementById("content").innerHTML = `
     <div class="setup">
@@ -184,6 +260,7 @@ function resetToken(){
   if(confirm("Disconnect this account and clear the saved token?")){
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem("exercise_name_cache");
+    localStorage.removeItem(ACTIVE_KEY);
     location.reload();
   }
 }
@@ -195,16 +272,26 @@ function tabsHtml(){
     <div class="tab ${activeTab==='routines'?'active':''}" onclick="setTab('routines')">Routines</div>
   </div>`;
 }
+function setTab(t){ activeTab = t; render(); }
 
-function setTab(t){
-  activeTab = t;
-  render();
+function resumeBannerHtml(){
+  const w = getActive();
+  if(!w) return "";
+  const mins = Math.max(0, Math.round((Date.now() - w.startedAtMs) / 60000));
+  return `<div class="resume-banner">
+    <div><div class="txt">${w.dayName} in progress</div><div class="sub2">${mins} min elapsed · tap to resume</div></div>
+    <button onclick="renderActiveWorkout()">Resume</button>
+  </div>`;
 }
 
 async function render(){
   if(!token){ showSetup(); return; }
+  const active = getActive();
+  if(active){ renderActiveWorkout(); return; }
+
+  document.getElementById("mainToolbar").style.display = "flex";
   document.getElementById("headerSub").textContent = "syncing…";
-  document.getElementById("content").innerHTML = tabsHtml() + `<div class="loading">Loading…</div>`;
+  document.getElementById("content").innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="loading">Loading…</div>`;
 
   try{
     const [sessions, logs, routines] = await Promise.all([
@@ -212,6 +299,7 @@ async function render(){
       apiAll(`/workoutlog/?format=json&ordering=-date&limit=500`),
       apiAll(`/routine/?format=json&is_template=false&limit=100`)
     ]);
+    allLogsCache = logs;
 
     document.getElementById("headerSub").textContent =
       sessions.length ? `${sessions.length} session${sessions.length===1?'':'s'} logged` : "connected";
@@ -236,7 +324,7 @@ async function render(){
     if(e.message === "auth"){
       showSetup("Token rejected — check it's correct and try again.");
     } else {
-      document.getElementById("content").innerHTML = tabsHtml() +
+      document.getElementById("content").innerHTML = resumeBannerHtml() + tabsHtml() +
         `<div class="empty">Couldn't load data (${e.message}). Pull to refresh or check your connection.</div>`;
     }
   }
@@ -245,22 +333,14 @@ async function render(){
 async function renderHistory(sessions, logsBySession, routineById){
   const content = document.getElementById("content");
   if(!sessions.length){
-    content.innerHTML = tabsHtml() + `<div class="empty">No workouts logged yet.<br>Log a session in the wger app and it'll show up here.</div>`;
+    content.innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="empty">No workouts logged yet.<br>Tap Routines → Start to log your first one.</div>`;
     return;
   }
 
-  // stats
   const totalSessions = sessions.length;
   const last7 = sessions.filter(s => daysAgo(s.date) <= 7).length;
+  const uniqueDates = [...new Set(sessions.map(s=>s.date))];
   let streak = 0;
-  const uniqueDates = [...new Set(sessions.map(s=>s.date))].sort().reverse();
-  let cursor = new Date();
-  for(const d of uniqueDates){
-    const diff = daysAgo(d);
-    if(diff <= streak + 1){ streak = Math.max(streak, diff===0?1:streak+1); } else break;
-  }
-  // simpler streak calc: consecutive days ending today/yesterday
-  streak = 0;
   let checkDate = new Date();
   checkDate.setHours(0,0,0,0);
   const dateSet = new Set(uniqueDates);
@@ -271,7 +351,7 @@ async function renderHistory(sessions, logsBySession, routineById){
     else break;
   }
 
-  let html = tabsHtml();
+  let html = resumeBannerHtml() + tabsHtml();
   html += `<div class="stats-row">
     <div class="stat"><div class="num">${totalSessions}</div><div class="lbl">Total</div></div>
     <div class="stat"><div class="num">${last7}</div><div class="lbl">Last 7d</div></div>
@@ -297,7 +377,6 @@ async function renderHistory(sessions, logsBySession, routineById){
     exIds.forEach((id, i) => {
       const sets = exGroups[id];
       const setStr = sets.map(x => `${parseFloat(x.weight||0)}kg×${parseFloat(x.repetitions||0)}`).join(", ");
-      const topWeight = Math.max(...sets.map(x => parseFloat(x.weight||0)));
       exHtml += `<div class="exrow">
         <div><div class="exname">${names[i]}</div><div class="exsets">${setStr}</div></div>
         <div class="pill">${sets.length} set${sets.length===1?'':'s'}</div>
@@ -312,7 +391,7 @@ async function renderHistory(sessions, logsBySession, routineById){
         <div class="routine-name">${routine ? routine.name : "Workout"}</div>
         <div class="date">${fmtDate(s.date)}</div>
       </div>
-      <div class="meta">${exIds.length} exercise${exIds.length===1?'':'s'}${s.impression ? " · felt " + ["","bad","ok","good"][s.impression] || "" : ""}</div>
+      <div class="meta">${exIds.length} exercise${exIds.length===1?'':'s'}${s.impression ? " · felt " + ({1:"bad",2:"ok",3:"good"}[s.impression]||"") : ""}</div>
       <div class="exlist">${exHtml}</div>
     `;
     listEl.appendChild(card);
@@ -322,7 +401,7 @@ async function renderHistory(sessions, logsBySession, routineById){
 async function renderPRs(logs){
   const content = document.getElementById("content");
   if(!logs.length){
-    content.innerHTML = tabsHtml() + `<div class="empty">No sets logged yet — PRs will show up once you have data.</div>`;
+    content.innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="empty">No sets logged yet — PRs will show up once you have data.</div>`;
     return;
   }
   const bestByExercise = {};
@@ -336,14 +415,14 @@ async function renderPRs(logs){
   }
   const exIds = Object.keys(bestByExercise);
   if(!exIds.length){
-    document.getElementById("content").innerHTML = tabsHtml() + `<div class="empty">No weighted sets logged yet.</div>`;
+    document.getElementById("content").innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="empty">No weighted sets logged yet.</div>`;
     return;
   }
   const names = await Promise.all(exIds.map(id => exerciseName(id)));
   const rows = exIds.map((id,i) => ({ name: names[i], ...bestByExercise[id] }))
     .sort((a,b) => b.weight - a.weight);
 
-  let html = tabsHtml() + `<section><h2>Personal Records</h2>`;
+  let html = resumeBannerHtml() + tabsHtml() + `<section><h2>Personal Records</h2>`;
   for(const r of rows){
     html += `<div class="pr-card">
       <div><div class="exname">${r.name}</div><div class="prdate">${fmtDate(r.date)}</div></div>
@@ -357,19 +436,307 @@ async function renderPRs(logs){
 function renderRoutines(routines){
   const content = document.getElementById("content");
   if(!routines.length){
-    content.innerHTML = tabsHtml() + `<div class="empty">No routines found.</div>`;
+    content.innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="empty">No routines found.</div>`;
     return;
   }
-  let html = tabsHtml() + `<section><h2>Your Routines</h2>`;
+  let html = resumeBannerHtml() + tabsHtml() + `<section><h2>Your Routines</h2>`;
   const sorted = [...routines].sort((a,b) => new Date(b.created) - new Date(a.created));
   for(const r of sorted){
     html += `<div class="routine-card">
-      <div class="rname">${r.name}</div>
-      <div class="rmeta">${r.start} → ${r.end}${r.description ? " · " + r.description : ""}</div>
+      <div class="rtop">
+        <div>
+          <div class="rname">${r.name}</div>
+          <div class="rmeta">${r.start} → ${r.end}${r.description ? " · " + r.description : ""}</div>
+        </div>
+        <button class="startbtn" onclick="startWorkout(${r.id})">▶ Start</button>
+      </div>
     </div>`;
   }
   html += `</section>`;
   content.innerHTML = html;
+}
+
+// ---------- ACTIVE WORKOUT ----------
+
+function parseConfigValue(configArr, fallback){
+  if(configArr && configArr.length) return parseFloat(configArr[0].value);
+  return fallback;
+}
+
+async function buildEntriesFromDay(day, allLogs){
+  // flatten slots -> entries, in order
+  const flat = [];
+  for(const slot of (day.slots||[]).sort((a,b)=>a.order-b.order)){
+    for(const entry of (slot.entries||[]).sort((a,b)=>a.order-b.order)){
+      flat.push({ slotEntryId: entry.id, exerciseId: entry.exercise });
+    }
+  }
+  const names = await Promise.all(flat.map(e => exerciseName(e.exerciseId)));
+
+  // "last time" per exercise: most recent date this exercise appears in logs, then all sets from that date
+  const logsByExercise = {};
+  for(const l of allLogs){
+    if(!logsByExercise[l.exercise]) logsByExercise[l.exercise] = [];
+    logsByExercise[l.exercise].push(l);
+  }
+
+  return flat.map((f, i) => {
+    const exLogs = (logsByExercise[f.exerciseId] || []).slice().sort((a,b)=> new Date(b.date)-new Date(a.date) || b.id-a.id);
+    let lastTime = [];
+    if(exLogs.length){
+      const mostRecentDate = exLogs[0].date;
+      lastTime = exLogs.filter(l => l.date === mostRecentDate)
+        .sort((a,b)=>a.id-b.id)
+        .map(l => ({ weight: parseFloat(l.weight||0), reps: parseFloat(l.repetitions||0) }));
+    }
+    return {
+      slotEntryId: f.slotEntryId,
+      exerciseId: f.exerciseId,
+      name: names[i],
+      targetSets: 3,
+      targetRepsMin: null,
+      targetRepsMax: null,
+      lastTime,
+      loggedSets: []
+    };
+  });
+}
+
+async function startWorkout(routineId){
+  if(getActive()){ renderActiveWorkout(); return; }
+  document.getElementById("content").innerHTML = `<div class="loading">Setting up workout…</div>`;
+  try{
+    const structure = await api(`/routine/${routineId}/structure/?format=json`);
+    const nonRestDays = (structure.days||[]).filter(d => !d.is_rest && (d.slots||[]).length);
+    if(!nonRestDays.length){ alert("This routine has no exercises configured."); render(); return; }
+    if(nonRestDays.length === 1){
+      await launchDay(structure, nonRestDays[0]);
+    } else {
+      showDayPicker(structure, nonRestDays);
+    }
+  }catch(e){
+    alert("Couldn't load routine: " + e.message);
+    render();
+  }
+}
+
+function showDayPicker(structure, days){
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `<div class="overlay-sheet">
+    <h3>Which day?</h3>
+    ${days.map((d,i) => `<div class="opt" data-i="${i}">${d.name}</div>`).join("")}
+    <button class="cancel" id="dpCancel">Cancel</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll(".opt").forEach(el => {
+    el.onclick = async () => {
+      const day = days[parseInt(el.dataset.i)];
+      document.body.removeChild(overlay);
+      await launchDay(structure, day);
+    };
+  });
+  document.getElementById("dpCancel").onclick = () => document.body.removeChild(overlay);
+}
+
+async function launchDay(structure, day){
+  document.getElementById("content").innerHTML = `<div class="loading">Setting up workout…</div>`;
+  try{
+    const logs = allLogsCache || await apiAll(`/workoutlog/?format=json&ordering=-date&limit=500`);
+    const entries = await buildEntriesFromDay(day, logs);
+
+    const session = await apiPost(`/workoutsession/?format=json`, {
+      routine: structure.id,
+      day: day.id,
+      date: todayISO(),
+      time_start: nowTimeISO()
+    });
+
+    const w = {
+      sessionId: session.id,
+      routineId: structure.id,
+      routineName: structure.name,
+      dayId: day.id,
+      dayName: day.name || structure.name,
+      startedAtMs: Date.now(),
+      entries
+    };
+    setActive(w);
+    renderActiveWorkout();
+  }catch(e){
+    alert("Couldn't start workout: " + e.message);
+    render();
+  }
+}
+
+function fmtTarget(entry){
+  return `Target: ${entry.targetSets} sets`;
+}
+
+function renderActiveWorkout(){
+  const w = getActive();
+  if(!w){ render(); return; }
+
+  document.getElementById("mainToolbar").style.display = "none";
+  document.getElementById("topHeader").innerHTML = `
+    <div>
+      <div class="wname">${w.dayName}</div>
+      <div class="wtimer" id="wtimer">0 min</div>
+    </div>
+    <button class="discardbtn" onclick="discardWorkout()">✕</button>
+  `;
+
+  let html = "";
+  w.entries.forEach((entry, idx) => {
+    const doneCount = entry.loggedSets.length;
+    const isDone = doneCount >= entry.targetSets;
+    let lastStr = "No previous data";
+    if(entry.lastTime.length){
+      lastStr = entry.lastTime.map(s => `${s.weight}kg×${s.reps}`).join(", ");
+    }
+
+    let setsHtml = "";
+    entry.loggedSets.forEach((s, si) => {
+      setsHtml += `<div class="setrow logged">
+        <div class="setnum">${si+1}</div>
+        <input value="${s.weight}" disabled>
+        <div class="unit">kg</div>
+        <input value="${s.reps}" disabled>
+        <div class="unit">reps</div>
+        <button class="delbtn" onclick="deleteSet(${idx},${si})">🗑</button>
+      </div>`;
+    });
+
+    const nextSetNum = doneCount + 1;
+    const suggestWeight = entry.loggedSets.length
+      ? entry.loggedSets[entry.loggedSets.length-1].weight
+      : (entry.lastTime.length ? entry.lastTime[0].weight : "");
+    const suggestReps = entry.lastTime.length
+      ? (entry.lastTime[Math.min(doneCount, entry.lastTime.length-1)] || entry.lastTime[0]).reps
+      : "";
+
+    setsHtml += `<div class="setrow">
+      <div class="setnum">${nextSetNum}</div>
+      <input type="number" inputmode="decimal" id="w_${idx}" placeholder="${suggestWeight||'kg'}" value="${suggestWeight||''}">
+      <div class="unit">kg</div>
+      <input type="number" inputmode="decimal" id="r_${idx}" placeholder="${suggestReps||'reps'}" value="${suggestReps||''}">
+      <div class="unit">reps</div>
+      <button class="logbtn" onclick="logSet(${idx})">✓</button>
+    </div>`;
+
+    html += `<div class="wex-card ${isDone?'done':''}">
+      <div class="wex-top">
+        <div>
+          <div class="wex-name">${entry.name}</div>
+          <div class="wex-target">${fmtTarget(entry)} · ${doneCount}/${entry.targetSets} done</div>
+        </div>
+      </div>
+      <div class="wex-last">Last time: <b>${lastStr}</b></div>
+      ${setsHtml}
+    </div>`;
+  });
+
+  html += `<div style="height:80px"></div>`;
+  document.getElementById("content").innerHTML = html;
+
+  const finishBar = document.getElementById("finishBar");
+  if(!finishBar){
+    const bar = document.createElement("div");
+    bar.className = "finish-bar";
+    bar.id = "finishBar";
+    bar.innerHTML = `<button onclick="finishWorkout()">Finish Workout</button>`;
+    document.body.appendChild(bar);
+  }
+
+  if(timerInterval) clearInterval(timerInterval);
+  updateTimer();
+  timerInterval = setInterval(updateTimer, 30000);
+}
+
+function updateTimer(){
+  const w = getActive();
+  if(!w) return;
+  const el = document.getElementById("wtimer");
+  if(!el) return;
+  const mins = Math.max(0, Math.round((Date.now() - w.startedAtMs) / 60000));
+  el.textContent = `${mins} min elapsed`;
+}
+
+async function logSet(idx){
+  const w = getActive();
+  if(!w) return;
+  const entry = w.entries[idx];
+  const weightVal = parseFloat(document.getElementById(`w_${idx}`).value);
+  const repsVal = parseFloat(document.getElementById(`r_${idx}`).value);
+  if(isNaN(weightVal) || isNaN(repsVal)){ alert("Enter weight and reps"); return; }
+
+  try{
+    const log = await apiPost(`/workoutlog/?format=json`, {
+      session: w.sessionId,
+      routine: w.routineId,
+      exercise: entry.exerciseId,
+      slot_entry: entry.slotEntryId,
+      weight: weightVal,
+      repetitions: repsVal,
+      date: new Date().toISOString()
+    });
+    entry.loggedSets.push({ id: log.id, weight: weightVal, reps: repsVal });
+    setActive(w);
+    renderActiveWorkout();
+  }catch(e){
+    alert("Couldn't log set: " + e.message);
+  }
+}
+
+async function deleteSet(idx, si){
+  const w = getActive();
+  if(!w) return;
+  const entry = w.entries[idx];
+  const set = entry.loggedSets[si];
+  if(!confirm("Remove this set?")) return;
+  try{
+    await apiDelete(`/workoutlog/${set.id}/`);
+    entry.loggedSets.splice(si, 1);
+    setActive(w);
+    renderActiveWorkout();
+  }catch(e){
+    alert("Couldn't delete: " + e.message);
+  }
+}
+
+async function finishWorkout(){
+  const w = getActive();
+  if(!w) return;
+  const totalSets = w.entries.reduce((sum,e) => sum + e.loggedSets.length, 0);
+  if(!confirm(`Finish workout? ${totalSets} set${totalSets===1?'':'s'} logged.`)) return;
+  try{
+    await apiPatch(`/workoutsession/${w.sessionId}/`, { time_end: nowTimeISO() });
+  }catch(e){ /* non-fatal */ }
+  clearActive();
+  if(timerInterval) clearInterval(timerInterval);
+  const bar = document.getElementById("finishBar");
+  if(bar) bar.remove();
+  activeTab = "history";
+  render();
+}
+
+async function discardWorkout(){
+  const w = getActive();
+  if(!w) return;
+  if(!confirm("Discard this workout? Logged sets will be deleted.")) return;
+  try{
+    for(const entry of w.entries){
+      for(const s of entry.loggedSets){
+        await apiDelete(`/workoutlog/${s.id}/`).catch(()=>{});
+      }
+    }
+    await apiDelete(`/workoutsession/${w.sessionId}/`).catch(()=>{});
+  }catch(e){ /* best effort */ }
+  clearActive();
+  if(timerInterval) clearInterval(timerInterval);
+  const bar = document.getElementById("finishBar");
+  if(bar) bar.remove();
+  render();
 }
 
 render();
