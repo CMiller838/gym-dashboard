@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gym Log</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg:#0d0d0f; --card:#17171b; --card2:#1e1e23; --border:#2a2a30;
+    --text:#f2f2f4; --muted:#8b8b93; --accent:#ff5a1f; --accent2:#3ddc84;
+    --danger:#ff5a5a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  #app{max-width:560px; margin:0 auto; padding:0 0 90px 0; min-height:100vh;}
+
+  header.topbar{position:sticky; top:0; z-index:10; background:rgba(13,13,15,0.92);
+    backdrop-filter:blur(10px); padding:16px 16px 12px; border-bottom:1px solid var(--border);}
+  header.topbar h1{font-size:20px; margin:0; font-weight:700; letter-spacing:-0.3px;}
+  header.topbar .sub{color:var(--muted); font-size:13px; margin-top:2px;}
+
+  .tabs{display:flex; gap:6px; padding:12px 16px 4px;}
+  .tab{flex:1; text-align:center; padding:9px 0; border-radius:10px; font-size:13px;
+    font-weight:600; color:var(--muted); background:var(--card); border:1px solid var(--border);}
+  .tab.active{color:#fff; background:var(--accent); border-color:var(--accent);}
+
+  .stats-row{display:flex; gap:10px; padding:14px 16px 4px;}
+  .stat{flex:1; background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:14px 10px; text-align:center;}
+  .stat .num{font-size:22px; font-weight:800; color:var(--accent);}
+  .stat .lbl{font-size:11px; color:var(--muted); margin-top:2px; text-transform:uppercase; letter-spacing:0.4px;}
+
+  section{padding:8px 16px;}
+  section h2{font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:0.6px;
+    margin:18px 0 10px;}
+
+  .session-card{background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:16px; margin-bottom:12px;}
+  .session-card .row-top{display:flex; justify-content:space-between; align-items:baseline;}
+  .session-card .routine-name{font-weight:700; font-size:16px;}
+  .session-card .date{color:var(--muted); font-size:12px;}
+  .session-card .meta{color:var(--muted); font-size:13px; margin-top:4px;}
+  .session-card .exlist{margin-top:12px; display:flex; flex-direction:column; gap:8px;}
+  .exrow{display:flex; justify-content:space-between; align-items:center; font-size:14px;
+    padding:8px 10px; background:var(--card2); border-radius:10px;}
+  .exrow .exname{font-weight:600;}
+  .exrow .exsets{color:var(--muted); font-size:12px; margin-top:2px;}
+  .pill{font-size:11px; background:rgba(61,220,132,0.15); color:var(--accent2);
+    padding:2px 8px; border-radius:20px; font-weight:700;}
+
+  .pr-card{background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:12px 14px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;}
+  .pr-card .exname{font-weight:600; font-size:14px;}
+  .pr-card .prval{font-weight:800; color:var(--accent); font-size:15px;}
+  .pr-card .prdate{color:var(--muted); font-size:11px;}
+
+  .routine-card{background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:16px; margin-bottom:12px;}
+  .routine-card .rname{font-weight:700; font-size:16px;}
+  .routine-card .rmeta{color:var(--muted); font-size:12px; margin-top:2px;}
+
+  .empty{color:var(--muted); text-align:center; padding:40px 20px; font-size:14px;}
+  .loading{color:var(--muted); text-align:center; padding:40px 20px; font-size:14px;}
+
+  .setup{padding:60px 24px; text-align:center;}
+  .setup h2{font-size:18px; margin-bottom:8px;}
+  .setup p{color:var(--muted); font-size:14px; line-height:1.5;}
+  .setup input{width:100%; padding:14px; margin-top:16px; border-radius:12px; border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-size:14px;}
+  .setup button{width:100%; padding:14px; margin-top:12px; border-radius:12px; border:none;
+    background:var(--accent); color:#fff; font-weight:700; font-size:15px;}
+  .setup .err{color:var(--danger); font-size:13px; margin-top:10px;}
+  .setup .hint{font-size:12px; color:var(--muted); margin-top:18px; line-height:1.5; text-align:left;}
+
+  .toolbar{position:fixed; bottom:0; left:0; right:0; background:rgba(13,13,15,0.95);
+    backdrop-filter:blur(10px); border-top:1px solid var(--border); padding:10px 16px;
+    display:flex; justify-content:center; gap:16px;}
+  .toolbar button{background:none; border:none; color:var(--muted); font-size:12px; padding:6px 12px;}
+  .toolbar button.reset{color:var(--danger);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <h1>🏋️ Gym Log</h1>
+    <div class="sub" id="headerSub">syncing…</div>
+  </header>
+  <div id="content"></div>
+</div>
+<div class="toolbar">
+  <button onclick="location.reload()">↻ Refresh</button>
+  <button class="reset" onclick="resetToken()">⎋ Change token</button>
+</div>
+
+<script>
+const API = "https://wger.de/api/v2";
+const TOKEN_KEY = "wger_api_token";
+let token = localStorage.getItem(TOKEN_KEY);
+let exerciseCache = JSON.parse(localStorage.getItem("exercise_name_cache") || "{}");
+let activeTab = "history";
+
+function saveExerciseCache(){ localStorage.setItem("exercise_name_cache", JSON.stringify(exerciseCache)); }
+
+async function api(path){
+  const res = await fetch(`${API}${path}`, { headers: { "Authorization": `Token ${token}` }});
+  if(res.status === 401 || res.status === 403){ throw new Error("auth"); }
+  if(!res.ok){ throw new Error("http_" + res.status); }
+  return res.json();
+}
+
+async function apiAll(path){
+  let results = [];
+  let url = `${API}${path}`;
+  while(url){
+    const res = await fetch(url, { headers: { "Authorization": `Token ${token}` }});
+    if(res.status === 401 || res.status === 403) throw new Error("auth");
+    if(!res.ok) throw new Error("http_" + res.status);
+    const data = await res.json();
+    results = results.concat(data.results || []);
+    url = data.next;
+  }
+  return results;
+}
+
+async function exerciseName(id){
+  if(exerciseCache[id]) return exerciseCache[id];
+  try{
+    const info = await api(`/exerciseinfo/${id}/?format=json`);
+    let name = null;
+    for(const t of (info.translations||[])){
+      if(t.language === 2){ name = t.name; break; }
+    }
+    if(!name && info.translations && info.translations.length){ name = info.translations[0].name; }
+    name = name || `Exercise #${id}`;
+    exerciseCache[id] = name;
+    saveExerciseCache();
+    return name;
+  }catch(e){
+    return `Exercise #${id}`;
+  }
+}
+
+function fmtDate(d){
+  const dt = new Date(d);
+  return dt.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+}
+
+function daysAgo(dateStr){
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now - d) / 86400000);
+}
+
+function showSetup(errMsg){
+  document.getElementById("headerSub").textContent = "not connected";
+  document.getElementById("content").innerHTML = `
+    <div class="setup">
+      <h2>Connect your wger account</h2>
+      <p>Paste your wger API token below. It's stored only on this device (localStorage), never sent anywhere except wger.de.</p>
+      <input id="tokenInput" type="password" placeholder="API token" autocomplete="off">
+      <button onclick="connectToken()">Connect</button>
+      ${errMsg ? `<div class="err">${errMsg}</div>` : ""}
+      <div class="hint">
+        Get your token: wger.de → Preferences → API token (or /api/v2/token in your account).
+      </div>
+    </div>`;
+}
+
+function connectToken(){
+  const val = document.getElementById("tokenInput").value.trim();
+  if(!val) return;
+  localStorage.setItem(TOKEN_KEY, val);
+  token = val;
+  render();
+}
+
+function resetToken(){
+  if(confirm("Disconnect this account and clear the saved token?")){
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("exercise_name_cache");
+    location.reload();
+  }
+}
+
+function tabsHtml(){
+  return `<div class="tabs">
+    <div class="tab ${activeTab==='history'?'active':''}" onclick="setTab('history')">History</div>
+    <div class="tab ${activeTab==='prs'?'active':''}" onclick="setTab('prs')">PRs</div>
+    <div class="tab ${activeTab==='routines'?'active':''}" onclick="setTab('routines')">Routines</div>
+  </div>`;
+}
+
+function setTab(t){
+  activeTab = t;
+  render();
+}
+
+async function render(){
+  if(!token){ showSetup(); return; }
+  document.getElementById("headerSub").textContent = "syncing…";
+  document.getElementById("content").innerHTML = tabsHtml() + `<div class="loading">Loading…</div>`;
+
+  try{
+    const [sessions, logs, routines] = await Promise.all([
+      apiAll(`/workoutsession/?format=json&ordering=-date&limit=100`),
+      apiAll(`/workoutlog/?format=json&ordering=-date&limit=500`),
+      apiAll(`/routine/?format=json&is_template=false&limit=100`)
+    ]);
+
+    document.getElementById("headerSub").textContent =
+      sessions.length ? `${sessions.length} session${sessions.length===1?'':'s'} logged` : "connected";
+
+    const routineById = {};
+    routines.forEach(r => routineById[r.id] = r);
+
+    const logsBySession = {};
+    logs.forEach(l => {
+      if(!logsBySession[l.session]) logsBySession[l.session] = [];
+      logsBySession[l.session].push(l);
+    });
+
+    if(activeTab === "history"){
+      await renderHistory(sessions, logsBySession, routineById);
+    } else if(activeTab === "prs"){
+      await renderPRs(logs);
+    } else if(activeTab === "routines"){
+      renderRoutines(routines);
+    }
+  }catch(e){
+    if(e.message === "auth"){
+      showSetup("Token rejected — check it's correct and try again.");
+    } else {
+      document.getElementById("content").innerHTML = tabsHtml() +
+        `<div class="empty">Couldn't load data (${e.message}). Pull to refresh or check your connection.</div>`;
+    }
+  }
+}
+
+async function renderHistory(sessions, logsBySession, routineById){
+  const content = document.getElementById("content");
+  if(!sessions.length){
+    content.innerHTML = tabsHtml() + `<div class="empty">No workouts logged yet.<br>Log a session in the wger app and it'll show up here.</div>`;
+    return;
+  }
+
+  // stats
+  const totalSessions = sessions.length;
+  const last7 = sessions.filter(s => daysAgo(s.date) <= 7).length;
+  let streak = 0;
+  const uniqueDates = [...new Set(sessions.map(s=>s.date))].sort().reverse();
+  let cursor = new Date();
+  for(const d of uniqueDates){
+    const diff = daysAgo(d);
+    if(diff <= streak + 1){ streak = Math.max(streak, diff===0?1:streak+1); } else break;
+  }
+  // simpler streak calc: consecutive days ending today/yesterday
+  streak = 0;
+  let checkDate = new Date();
+  checkDate.setHours(0,0,0,0);
+  const dateSet = new Set(uniqueDates);
+  for(let i=0;i<400;i++){
+    const iso = checkDate.toISOString().slice(0,10);
+    if(dateSet.has(iso)){ streak++; checkDate.setDate(checkDate.getDate()-1); }
+    else if(i===0){ checkDate.setDate(checkDate.getDate()-1); continue; }
+    else break;
+  }
+
+  let html = tabsHtml();
+  html += `<div class="stats-row">
+    <div class="stat"><div class="num">${totalSessions}</div><div class="lbl">Total</div></div>
+    <div class="stat"><div class="num">${last7}</div><div class="lbl">Last 7d</div></div>
+    <div class="stat"><div class="num">${streak}</div><div class="lbl">Streak</div></div>
+  </div>`;
+
+  html += `<section><h2>Recent Sessions</h2><div id="sessionList"></div></section>`;
+  content.innerHTML = html;
+
+  const listEl = document.getElementById("sessionList");
+  for(const s of sessions.slice(0, 30)){
+    const sLogs = logsBySession[s.id] || [];
+    const routine = routineById[s.routine];
+    const exGroups = {};
+    for(const l of sLogs){
+      if(!exGroups[l.exercise]) exGroups[l.exercise] = [];
+      exGroups[l.exercise].push(l);
+    }
+    const exIds = Object.keys(exGroups);
+    const names = await Promise.all(exIds.map(id => exerciseName(id)));
+
+    let exHtml = "";
+    exIds.forEach((id, i) => {
+      const sets = exGroups[id];
+      const setStr = sets.map(x => `${parseFloat(x.weight||0)}kg×${parseFloat(x.repetitions||0)}`).join(", ");
+      const topWeight = Math.max(...sets.map(x => parseFloat(x.weight||0)));
+      exHtml += `<div class="exrow">
+        <div><div class="exname">${names[i]}</div><div class="exsets">${setStr}</div></div>
+        <div class="pill">${sets.length} set${sets.length===1?'':'s'}</div>
+      </div>`;
+    });
+    if(!exHtml) exHtml = `<div class="exrow"><div class="exname" style="color:var(--muted)">No sets logged for this session</div></div>`;
+
+    const card = document.createElement("div");
+    card.className = "session-card";
+    card.innerHTML = `
+      <div class="row-top">
+        <div class="routine-name">${routine ? routine.name : "Workout"}</div>
+        <div class="date">${fmtDate(s.date)}</div>
+      </div>
+      <div class="meta">${exIds.length} exercise${exIds.length===1?'':'s'}${s.impression ? " · felt " + ["","bad","ok","good"][s.impression] || "" : ""}</div>
+      <div class="exlist">${exHtml}</div>
+    `;
+    listEl.appendChild(card);
+  }
+}
+
+async function renderPRs(logs){
+  const content = document.getElementById("content");
+  if(!logs.length){
+    content.innerHTML = tabsHtml() + `<div class="empty">No sets logged yet — PRs will show up once you have data.</div>`;
+    return;
+  }
+  const bestByExercise = {};
+  for(const l of logs){
+    const w = parseFloat(l.weight || 0);
+    if(w <= 0) continue;
+    const cur = bestByExercise[l.exercise];
+    if(!cur || w > cur.weight){
+      bestByExercise[l.exercise] = { weight: w, reps: parseFloat(l.repetitions||0), date: l.date };
+    }
+  }
+  const exIds = Object.keys(bestByExercise);
+  if(!exIds.length){
+    document.getElementById("content").innerHTML = tabsHtml() + `<div class="empty">No weighted sets logged yet.</div>`;
+    return;
+  }
+  const names = await Promise.all(exIds.map(id => exerciseName(id)));
+  const rows = exIds.map((id,i) => ({ name: names[i], ...bestByExercise[id] }))
+    .sort((a,b) => b.weight - a.weight);
+
+  let html = tabsHtml() + `<section><h2>Personal Records</h2>`;
+  for(const r of rows){
+    html += `<div class="pr-card">
+      <div><div class="exname">${r.name}</div><div class="prdate">${fmtDate(r.date)}</div></div>
+      <div class="prval">${r.weight}kg × ${r.reps}</div>
+    </div>`;
+  }
+  html += `</section>`;
+  document.getElementById("content").innerHTML = html;
+}
+
+function renderRoutines(routines){
+  const content = document.getElementById("content");
+  if(!routines.length){
+    content.innerHTML = tabsHtml() + `<div class="empty">No routines found.</div>`;
+    return;
+  }
+  let html = tabsHtml() + `<section><h2>Your Routines</h2>`;
+  const sorted = [...routines].sort((a,b) => new Date(b.created) - new Date(a.created));
+  for(const r of sorted){
+    html += `<div class="routine-card">
+      <div class="rname">${r.name}</div>
+      <div class="rmeta">${r.start} → ${r.end}${r.description ? " · " + r.description : ""}</div>
+    </div>`;
+  }
+  html += `</section>`;
+  content.innerHTML = html;
+}
+
+render();
+</script>
+</body>
+</html>
