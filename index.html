@@ -17,7 +17,7 @@
   :root{
     --bg:#0d0d0f; --card:#17171b; --card2:#1e1e23; --border:#2a2a30;
     --text:#f2f2f4; --muted:#8b8b93; --accent:#ff5a1f; --accent2:#3ddc84;
-    --danger:#ff5a5a;
+    --danger:#ff5a5a; --gold:#ffd23d;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
@@ -109,11 +109,17 @@
   .workout-header .discardbtn{color:var(--danger); background:none; border:none; font-size:20px; padding:4px 8px;}
 
   .wex-card{background:var(--card); border:1px solid var(--border); border-radius:16px;
-    margin:12px 16px; padding:16px;}
+    margin:12px 16px; padding:16px; transition:border-color 0.2s;}
   .wex-card.done{border-color:rgba(61,220,132,0.4);}
-  .wex-card .wex-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  .wex-card .wex-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .wex-card .wex-move{display:flex; flex-direction:column; gap:4px;}
+  .wex-card .movebtn{background:var(--card2); border:1px solid var(--border); color:var(--muted);
+    border-radius:8px; width:26px; height:22px; font-size:11px; line-height:1; padding:0;}
+  .wex-card .movebtn:disabled{opacity:0.25;}
+  .wex-card .wex-titleblock{flex:1; min-width:0;}
   .wex-card .wex-name{font-weight:700; font-size:16px;}
   .wex-card .wex-target{color:var(--muted); font-size:12px; margin-top:2px;}
+  .wex-card .removeexbtn{background:none; border:none; color:var(--danger); font-size:16px; padding:2px 4px; opacity:0.75;}
   .wex-card .wex-last{background:var(--card2); border-radius:10px; padding:8px 10px;
     margin-top:10px; font-size:12px; color:var(--muted);}
   .wex-card .wex-last b{color:var(--text);}
@@ -134,13 +140,20 @@
   .setrow input{width:100%; background:var(--card2); border:1px solid var(--border); color:var(--text);
     border-radius:8px; padding:9px 4px; font-size:14px; text-align:center; min-width:0;}
   .setrow.logged input{background:rgba(61,220,132,0.08); border-color:rgba(61,220,132,0.3); color:var(--accent2);}
-  .setrow .checkcell{width:36px;}
+  .setrow .actioncell{width:34px;}
+  .setrow .actioncell .rowbtns{display:flex; flex-direction:column; gap:3px; align-items:center;}
   .setrow .logbtn{background:var(--card2); color:var(--muted); border:1px solid var(--border);
-    border-radius:8px; width:32px; height:32px; font-weight:900; font-size:15px;}
+    border-radius:7px; width:30px; height:24px; font-weight:900; font-size:13px; padding:0;}
   .setrow.logged .logbtn{background:var(--accent2); color:#0d0d0f; border-color:var(--accent2);}
+  .setrow .delbtn{background:none; color:var(--muted); border:none; font-size:13px; width:30px; height:18px; padding:0; opacity:0.65;}
+  .setrow .delbtn:active{opacity:1; color:var(--danger);}
 
   .addsetbtn{margin-top:10px; width:100%; padding:9px; border-radius:10px; border:1px dashed var(--border);
     background:none; color:var(--muted); font-size:13px; font-weight:600;}
+
+  .addexbtn{display:block; width:calc(100% - 32px); margin:12px 16px 0; padding:13px; border-radius:14px;
+    border:1px dashed var(--accent); background:rgba(255,90,31,0.08); color:var(--accent);
+    font-size:14px; font-weight:700;}
 
   .finish-bar{position:fixed; bottom:0; left:0; right:0; background:rgba(13,13,15,0.97);
     backdrop-filter:blur(10px); border-top:1px solid var(--border); padding:12px 16px; z-index:20;}
@@ -150,12 +163,26 @@
   .overlay{position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:30;
     display:flex; align-items:flex-end; justify-content:center;}
   .overlay-sheet{background:var(--card); width:100%; max-width:560px; border-radius:20px 20px 0 0;
-    padding:20px; max-height:70vh; overflow-y:auto;}
+    padding:20px; max-height:78vh; overflow-y:auto;}
   .overlay-sheet h3{margin:0 0 14px; font-size:16px;}
   .overlay-sheet .opt{background:var(--card2); border-radius:12px; padding:14px; margin-bottom:8px;
     font-weight:600; border:1px solid var(--border);}
   .overlay-sheet .cancel{width:100%; padding:12px; margin-top:8px; background:none; border:none;
     color:var(--muted); font-size:14px;}
+
+  /* --- Feedback: confetti + PR toast --- */
+  .confetti-piece{position:fixed; z-index:60; border-radius:2px; pointer-events:none;
+    animation-name:confettiBurst; animation-timing-function:cubic-bezier(.2,.8,.3,1); animation-fill-mode:forwards;}
+  @keyframes confettiBurst{
+    0%{ transform:translate(-50%,-50%) rotate(0deg) scale(1); opacity:1; }
+    100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(0.6); opacity:0; }
+  }
+  .pr-toast{position:fixed; top:-120px; left:50%; transform:translateX(-50%); z-index:70;
+    background:linear-gradient(135deg,var(--gold),var(--accent)); color:#1a1200; font-weight:800; font-size:14px;
+    padding:14px 22px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.45);
+    transition:top 0.45s cubic-bezier(.34,1.56,.64,1); white-space:nowrap; text-align:center;}
+  .pr-toast.show{ top:18px; }
+  .pr-toast .prsub{display:block; font-size:11px; font-weight:600; opacity:0.85; margin-top:2px;}
 </style>
 </head>
 <body>
@@ -181,6 +208,8 @@ const API = "https://wger.de/api/v2";
 // short-lived session cookies instead).
 const TOKEN_KEY = "wger_api_token";
 const ACTIVE_KEY = "active_workout";
+const EXINDEX_KEY = "exercise_index_v1";
+const EXINDEX_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 let token = localStorage.getItem(TOKEN_KEY);
 let exerciseCache = {};
 try{
@@ -192,6 +221,7 @@ try{
 }
 let activeTab = "history";
 let allLogsCache = null; // populated on normal render, used for "last time" lookups
+let exerciseIndex = null; // [{id,name}], lazily built/cached for the exercise picker
 let renderGeneration = 0; // bumped on every render() call; stale calls bail out instead of overwriting fresher state
 let timerInterval = null;
 let restTickInterval = null;
@@ -261,22 +291,57 @@ async function mapWithConcurrency(items, limit, fn){
   return results;
 }
 
+// Pulls the preferred (English, language id 2) translation name out of an
+// exerciseinfo-shaped object's `translations` array, falling back to whatever's first.
+function pickEnglishName(translations){
+  let name = null;
+  for(const t of (translations||[])){
+    if(t.language === 2){ name = t.name; break; }
+  }
+  if(!name && translations && translations.length){ name = translations[0].name; }
+  return name;
+}
+
 async function exerciseName(id){
   if(exerciseCache[id]) return exerciseCache[id];
   try{
     const info = await api(`/exerciseinfo/${id}/?format=json`);
-    let name = null;
-    for(const t of (info.translations||[])){
-      if(t.language === 2){ name = t.name; break; }
-    }
-    if(!name && info.translations && info.translations.length){ name = info.translations[0].name; }
-    name = name || `Exercise #${id}`;
+    const name = pickEnglishName(info.translations) || `Exercise #${id}`;
     exerciseCache[id] = name;
     saveExerciseCache();
     return name;
   }catch(e){
     return `Exercise #${id}`;
   }
+}
+
+// Builds (or returns the cached) full {id,name} exercise list used by the "Add exercise"
+// picker. wger's public search endpoints proved unreliable to target directly, so instead
+// we pull the full exerciseinfo list once (~a handful of paginated requests) and filter
+// client-side; the result is cached in localStorage for a week.
+async function loadExerciseIndex(){
+  if(exerciseIndex) return exerciseIndex;
+  try{
+    const cached = JSON.parse(localStorage.getItem(EXINDEX_KEY) || "null");
+    if(cached && cached.ts && (Date.now() - cached.ts < EXINDEX_TTL_MS) && Array.isArray(cached.items) && cached.items.length){
+      exerciseIndex = cached.items;
+      return exerciseIndex;
+    }
+  }catch(e){ /* fall through to rebuild */ }
+
+  const infos = await apiAll(`/exerciseinfo/?format=json&limit=200`);
+  const items = [];
+  for(const info of infos){
+    const name = pickEnglishName(info.translations);
+    if(!name) continue;
+    items.push({ id: info.id, name });
+    if(!exerciseCache[info.id]) exerciseCache[info.id] = name;
+  }
+  items.sort((a,b) => a.name.localeCompare(b.name));
+  exerciseIndex = items;
+  try{ localStorage.setItem(EXINDEX_KEY, JSON.stringify({ ts: Date.now(), items })); }catch(e){ /* storage full: cache just won't persist */ }
+  saveExerciseCache();
+  return items;
 }
 
 function esc(s){
@@ -332,6 +397,7 @@ function resetToken(){
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem("exercise_name_cache");
     localStorage.removeItem(ACTIVE_KEY);
+    localStorage.removeItem(EXINDEX_KEY);
     location.reload();
   }
 }
@@ -537,10 +603,38 @@ function renderRoutines(routines){
 }
 
 // ---------- ACTIVE WORKOUT ----------
+// An active workout's `entries` is an array of exercises, in display order. Each entry
+// has a `sets` array (one item per row); this replaces the old setCount+loggedByRow model
+// so that removing a set, removing a whole exercise, and reordering exercises are all
+// simple array operations that stay in sync with what's rendered.
+//   entry = { slotEntryId, exerciseId, name, restSeconds, restEndMs, lastTime, sets }
+//   set   = { weight, reps, logged, logId }
+// slotEntryId is null for exercises added ad hoc mid-workout (not part of the routine's
+// structure) — wger's WorkoutLog.slot_entry is optional, so these log normally.
 
 function parseConfigValue(configArr, fallback){
   if(configArr && configArr.length) return parseFloat(configArr[0].value);
   return fallback;
+}
+
+function computeBestByExercise(logs){
+  const m = {};
+  for(const l of (logs||[])){
+    const w = parseFloat(l.weight || 0);
+    if(w <= 0) continue;
+    if(!(l.exercise in m) || w > m[l.exercise]) m[l.exercise] = w;
+  }
+  return m;
+}
+
+function lastTimeForExercise(exerciseId, logs){
+  const exLogs = (logs||[]).filter(l => l.exercise === exerciseId)
+    .slice().sort((a,b)=> new Date(b.date)-new Date(a.date) || b.id-a.id);
+  if(!exLogs.length) return [];
+  const mostRecentDate = exLogs[0].date;
+  return exLogs.filter(l => l.date === mostRecentDate)
+    .sort((a,b)=>a.id-b.id)
+    .map(l => ({ weight: parseFloat(l.weight||0), reps: parseFloat(l.repetitions||0) }));
 }
 
 async function buildEntriesFromDay(day, allLogs){
@@ -555,31 +649,22 @@ async function buildEntriesFromDay(day, allLogs){
   }
   const names = await mapWithConcurrency(flat, 5, e => exerciseName(e.exerciseId));
 
-  // "last time" per exercise: most recent date this exercise appears in logs, then all sets from that date
-  const logsByExercise = {};
-  for(const l of allLogs){
-    if(!logsByExercise[l.exercise]) logsByExercise[l.exercise] = [];
-    logsByExercise[l.exercise].push(l);
-  }
-
   return flat.map((f, i) => {
-    const exLogs = (logsByExercise[f.exerciseId] || []).slice().sort((a,b)=> new Date(b.date)-new Date(a.date) || b.id-a.id);
-    let lastTime = [];
-    if(exLogs.length){
-      const mostRecentDate = exLogs[0].date;
-      lastTime = exLogs.filter(l => l.date === mostRecentDate)
-        .sort((a,b)=>a.id-b.id)
-        .map(l => ({ weight: parseFloat(l.weight||0), reps: parseFloat(l.repetitions||0) }));
+    const lastTime = lastTimeForExercise(f.exerciseId, allLogs);
+    const setCount = Math.max(1, Math.round(f.setNrTarget || 3));
+    const sets = [];
+    for(let si=0; si<setCount; si++){
+      const suggest = lastTime[si] || lastTime[0] || null;
+      sets.push({ weight: suggest ? suggest.weight : "", reps: suggest ? suggest.reps : "", logged:false, logId:null });
     }
     return {
       slotEntryId: f.slotEntryId,
       exerciseId: f.exerciseId,
       name: names[i],
-      setCount: Math.max(1, Math.round(f.setNrTarget || 3)),
       restSeconds: f.restSeconds || 90,
       restEndMs: null,
       lastTime,
-      loggedByRow: {}
+      sets
     };
   });
 }
@@ -625,6 +710,7 @@ async function launchDay(structure, day){
   document.getElementById("content").innerHTML = `<div class="loading">Setting up workout…</div>`;
   try{
     const logs = allLogsCache || await apiAll(`/workoutlog/?format=json&ordering=-date&limit=500`);
+    allLogsCache = logs;
     const entries = await buildEntriesFromDay(day, logs);
 
     const session = await apiPost(`/workoutsession/?format=json`, {
@@ -641,7 +727,8 @@ async function launchDay(structure, day){
       dayId: day.id,
       dayName: day.name || structure.name,
       startedAtMs: Date.now(),
-      entries
+      entries,
+      sessionBest: computeBestByExercise(logs) // exerciseId -> heaviest weight ever logged, updated live as PRs happen
     };
     setActive(w);
     renderActiveWorkout();
@@ -660,13 +747,10 @@ function fmtRest(sec){
   return m>0 ? `${m}min ${s}s` : `${s}s`;
 }
 
-function rowCount(entry){
-  return Math.max(entry.setCount||1, ...Object.keys(entry.loggedByRow||{}).map(k=>parseInt(k)+1), 1);
-}
-
 function renderActiveWorkout(){
   const w = getActive();
   if(!w){ render(); return; }
+  if(!w.sessionBest) w.sessionBest = computeBestByExercise(allLogsCache || []); // migrate any workout saved before this field existed
 
   document.getElementById("mainToolbar").style.display = "none";
   document.getElementById("topHeader").innerHTML = `
@@ -679,35 +763,39 @@ function renderActiveWorkout(){
 
   let html = "";
   w.entries.forEach((entry, idx) => {
-    const rows = rowCount(entry);
-    const doneCount = Object.keys(entry.loggedByRow||{}).length;
-    const isDone = doneCount >= (entry.setCount||1);
+    const doneCount = entry.sets.filter(s => s.logged).length;
+    const isDone = entry.sets.length > 0 && doneCount === entry.sets.length;
 
     let rowsHtml = "";
-    for(let ri=0; ri<rows; ri++){
-      const logged = entry.loggedByRow[ri];
-      const prev = entry.lastTime[ri];
+    entry.sets.forEach((s, si) => {
+      const prev = entry.lastTime[si];
       const prevStr = prev ? `${prev.weight}kg×${prev.reps}` : "—";
-      if(logged){
+      if(s.logged){
         rowsHtml += `<tr class="setrow logged">
-          <td class="setnum">${ri+1}</td>
+          <td class="setnum">${si+1}</td>
           <td class="prevcell">${prevStr}</td>
-          <td><input value="${logged.weight}" disabled></td>
-          <td><input value="${logged.reps}" disabled></td>
-          <td class="checkcell"><button class="logbtn" onclick="unlogSet(${idx},${ri})">✓</button></td>
+          <td><input value="${s.weight}" disabled></td>
+          <td><input value="${s.reps}" disabled></td>
+          <td class="actioncell"><div class="rowbtns">
+            <button class="logbtn" onclick="unlogSet(${idx},${si})">✓</button>
+            <button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button>
+          </div></td>
         </tr>`;
       } else {
-        const suggestWeight = prev ? prev.weight : (entry.lastTime.length ? entry.lastTime[0].weight : "");
-        const suggestReps = prev ? prev.reps : (entry.lastTime.length ? entry.lastTime[0].reps : "");
+        const suggestWeight = s.weight;
+        const suggestReps = s.reps;
         rowsHtml += `<tr class="setrow">
-          <td class="setnum">${ri+1}</td>
+          <td class="setnum">${si+1}</td>
           <td class="prevcell">${prevStr}</td>
-          <td><input type="number" inputmode="decimal" id="w_${idx}_${ri}" placeholder="${suggestWeight||'kg'}" value="${suggestWeight||''}"></td>
-          <td><input type="number" inputmode="decimal" id="r_${idx}_${ri}" placeholder="${suggestReps||'reps'}" value="${suggestReps||''}"></td>
-          <td class="checkcell"><button class="logbtn" onclick="logSet(${idx},${ri})">✓</button></td>
+          <td><input type="number" inputmode="decimal" id="w_${idx}_${si}" placeholder="${suggestWeight||'kg'}" value="${suggestWeight||''}"></td>
+          <td><input type="number" inputmode="decimal" id="r_${idx}_${si}" placeholder="${suggestReps||'reps'}" value="${suggestReps||''}"></td>
+          <td class="actioncell"><div class="rowbtns">
+            <button class="logbtn" onclick="logSet(${idx},${si})">✓</button>
+            <button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button>
+          </div></td>
         </tr>`;
       }
-    }
+    });
 
     const remaining = entry.restEndMs ? Math.max(0, Math.ceil((entry.restEndMs - Date.now())/1000)) : 0;
     const restHtml = remaining > 0
@@ -719,10 +807,15 @@ function renderActiveWorkout(){
 
     html += `<div class="wex-card ${isDone?'done':''}">
       <div class="wex-top">
-        <div>
-          <div class="wex-name">${esc(entry.name)}</div>
-          <div class="wex-target">Target: ${entry.setCount} sets · Rest ${fmtRest(entry.restSeconds)} · ${doneCount}/${entry.setCount} done</div>
+        <div class="wex-move">
+          <button class="movebtn" onclick="moveExercise(${idx},-1)" ${idx===0?'disabled':''} title="Move up">▲</button>
+          <button class="movebtn" onclick="moveExercise(${idx},1)" ${idx===w.entries.length-1?'disabled':''} title="Move down">▼</button>
         </div>
+        <div class="wex-titleblock">
+          <div class="wex-name">${esc(entry.name)}</div>
+          <div class="wex-target">Target: ${entry.sets.length} sets · Rest ${fmtRest(entry.restSeconds)} · ${doneCount}/${entry.sets.length} done</div>
+        </div>
+        <button class="removeexbtn" onclick="removeExercise(${idx})" title="Remove exercise">🗑</button>
       </div>
       <div class="wex-last">Last time: <b>${entry.lastTime.length ? entry.lastTime.map(s=>`${s.weight}kg×${s.reps}`).join(", ") : "No previous data"}</b></div>
       ${restHtml}
@@ -734,6 +827,7 @@ function renderActiveWorkout(){
     </div>`;
   });
 
+  html += `<button class="addexbtn" onclick="openAddExercise()">+ Add Exercise</button>`;
   html += `<div style="height:80px"></div>`;
   document.getElementById("content").innerHTML = html;
 
@@ -785,7 +879,120 @@ function addSetRow(idx){
   const w = getActive();
   if(!w) return;
   const entry = w.entries[idx];
-  entry.setCount = rowCount(entry) + 1;
+  const last = entry.sets[entry.sets.length - 1];
+  entry.sets.push({ weight: last ? last.weight : "", reps: last ? last.reps : "", logged:false, logId:null });
+  setActive(w);
+  renderActiveWorkout();
+}
+
+async function removeSetRow(idx, si){
+  const w = getActive();
+  if(!w) return;
+  const entry = w.entries[idx];
+  const set = entry.sets[si];
+  if(entry.sets.length <= 1){
+    alert("Each exercise needs at least one set — remove the whole exercise instead if you don't want it in this workout.");
+    return;
+  }
+  if(set.logged){
+    if(!confirm("Delete this logged set? This removes it from wger.")) return;
+    try{
+      await apiDelete(`/workoutlog/${set.logId}/`);
+    }catch(e){
+      alert("Couldn't delete: " + e.message);
+      return;
+    }
+  }
+  entry.sets.splice(si, 1);
+  setActive(w);
+  renderActiveWorkout();
+}
+
+function moveExercise(idx, dir){
+  const w = getActive();
+  if(!w) return;
+  const j = idx + dir;
+  if(j < 0 || j >= w.entries.length) return;
+  const tmp = w.entries[idx];
+  w.entries[idx] = w.entries[j];
+  w.entries[j] = tmp;
+  setActive(w);
+  renderActiveWorkout();
+}
+
+async function removeExercise(idx){
+  const w = getActive();
+  if(!w) return;
+  const entry = w.entries[idx];
+  const loggedSets = entry.sets.filter(s => s.logged);
+  const msg = loggedSets.length
+    ? `Remove ${entry.name}? This will also delete ${loggedSets.length} logged set${loggedSets.length===1?'':'s'} from wger.`
+    : `Remove ${entry.name} from this workout?`;
+  if(!confirm(msg)) return;
+  for(const s of loggedSets){
+    try{ await apiDelete(`/workoutlog/${s.logId}/`); }catch(e){ /* best effort — surfaced nowhere, matches discardWorkout's tolerance */ }
+  }
+  w.entries.splice(idx, 1);
+  setActive(w);
+  renderActiveWorkout();
+}
+
+async function openAddExercise(){
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `<div class="overlay-sheet">
+    <h3>Add exercise</h3>
+    <input id="exSearchInput" type="text" placeholder="Search exercises…"
+      style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--card2); color:var(--text); font-size:14px; margin-bottom:10px;">
+    <div id="exResults"><div class="empty" style="padding:20px;">Loading exercises…</div></div>
+    <button class="cancel" id="exCancel">Cancel</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById("exCancel").onclick = () => { if(overlay.parentNode) document.body.removeChild(overlay); };
+
+  const resultsEl = document.getElementById("exResults");
+  let items = [];
+  try{
+    items = await loadExerciseIndex();
+  }catch(e){
+    resultsEl.innerHTML = `<div class="empty">Couldn't load exercise list (${esc(e.message)}). Check your connection and try again.</div>`;
+    return;
+  }
+
+  function renderResults(filter){
+    const f = filter.trim().toLowerCase();
+    const matches = (f ? items.filter(x => x.name.toLowerCase().includes(f)) : items).slice(0, 60);
+    if(!matches.length){ resultsEl.innerHTML = `<div class="empty" style="padding:20px;">No matches.</div>`; return; }
+    resultsEl.innerHTML = matches.map(x => `<div class="opt" data-id="${x.id}">${esc(x.name)}</div>`).join("");
+    resultsEl.querySelectorAll(".opt").forEach(el => {
+      el.onclick = () => {
+        const id = parseInt(el.dataset.id, 10);
+        const item = items.find(x => x.id === id);
+        if(overlay.parentNode) document.body.removeChild(overlay);
+        addExerciseToWorkout(id, item ? item.name : `Exercise #${id}`);
+      };
+    });
+  }
+  renderResults("");
+  const input = document.getElementById("exSearchInput");
+  input.addEventListener("input", () => renderResults(input.value));
+  input.focus();
+}
+
+function addExerciseToWorkout(id, name){
+  const w = getActive();
+  if(!w) return;
+  const lastTime = lastTimeForExercise(id, allLogsCache || []);
+  const suggest = lastTime[0] || null;
+  w.entries.push({
+    slotEntryId: null, // not part of the routine's structure — logs fine, wger's slot_entry link is optional
+    exerciseId: id,
+    name,
+    restSeconds: 90,
+    restEndMs: null,
+    lastTime,
+    sets: [{ weight: suggest ? suggest.weight : "", reps: suggest ? suggest.reps : "", logged:false, logId:null }]
+  });
   setActive(w);
   renderActiveWorkout();
 }
@@ -798,44 +1005,116 @@ function skipRest(idx){
   renderActiveWorkout();
 }
 
-async function logSet(idx, ri){
+// ---------- Feedback: vibration + confetti + PR celebration ----------
+
+function vibrate(pattern){
+  try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){ /* unsupported — no-op */ }
+}
+
+function spawnConfetti(x, y, count, colors, big){
+  for(let i=0;i<count;i++){
+    const el = document.createElement("div");
+    el.className = "confetti-piece";
+    const angle = Math.random() * Math.PI * 2;
+    const dist = big ? (90 + Math.random()*150) : (40 + Math.random()*70);
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist - (big ? 50 : 15); // slight upward bias so it feels like a "pop"
+    const rot = (Math.random()*720 - 360) + "deg";
+    const size = big ? (7 + Math.random()*9) : (5 + Math.random()*5);
+    const color = colors[Math.floor(Math.random()*colors.length)];
+    el.style.cssText = `left:${x}px; top:${y}px; --dx:${dx}px; --dy:${dy}px; --rot:${rot}; width:${size}px; height:${size}px; background:${color}; animation-duration:${big?1.15:0.7}s;`;
+    document.body.appendChild(el);
+    const cleanup = () => { if(el.parentNode) el.parentNode.removeChild(el); };
+    el.addEventListener("animationend", cleanup);
+    setTimeout(cleanup, 1600); // fallback in case animationend doesn't fire
+  }
+}
+
+function showPRToast(name, weight, prevBest){
+  const el = document.createElement("div");
+  el.className = "pr-toast";
+  el.innerHTML = `🏆 New PR! <span class="prsub">${esc(name)} — ${weight}kg${prevBest ? ` (was ${prevBest}kg)` : ""}</span>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("show")));
+  setTimeout(() => {
+    el.classList.remove("show");
+    setTimeout(() => { if(el.parentNode) el.parentNode.removeChild(el); }, 500);
+  }, 2600);
+}
+
+// Standard tier: quick buzz + a small confetti pop, for every logged set.
+// PR tier (isPR=true): longer celebratory buzz pattern, a much bigger confetti burst,
+// and a banner sliding down from the top — reserved for beating a previous best weight.
+function triggerSetFeedback(isPR, x, y, name, weight, prevBest){
+  if(isPR){
+    vibrate([50,40,50,40,150]);
+    spawnConfetti(x, y, 40, ["#ffd23d","#ff5a1f","#3ddc84","#5ac8ff","#ffffff"], true);
+    showPRToast(name, weight, prevBest);
+  } else {
+    vibrate(35);
+    spawnConfetti(x, y, 14, ["#3ddc84","#5ac8ff","#ffd23d"], false);
+  }
+}
+
+async function logSet(idx, si){
   const w = getActive();
   if(!w) return;
   const entry = w.entries[idx];
-  const weightVal = parseFloat(document.getElementById(`w_${idx}_${ri}`).value);
-  const repsVal = parseFloat(document.getElementById(`r_${idx}_${ri}`).value);
+  const set = entry.sets[si];
+  const weightInput = document.getElementById(`w_${idx}_${si}`);
+  const repsInput = document.getElementById(`r_${idx}_${si}`);
+  const weightVal = parseFloat(weightInput.value);
+  const repsVal = parseFloat(repsInput.value);
   if(isNaN(weightVal) || isNaN(repsVal)){ alert("Enter weight and reps"); return; }
   if(weightVal < 0 || repsVal < 0){ alert("Weight and reps can't be negative"); return; }
+
+  // Capture the button's screen position before the DOM gets rebuilt, so the celebration
+  // can burst from where the user actually tapped.
+  const anchorRect = repsInput.getBoundingClientRect();
+  const originX = anchorRect.left + anchorRect.width/2;
+  const originY = anchorRect.top + anchorRect.height/2;
 
   try{
     const log = await apiPost(`/workoutlog/?format=json`, {
       session: w.sessionId,
       routine: w.routineId,
       exercise: entry.exerciseId,
-      slot_entry: entry.slotEntryId,
+      slot_entry: entry.slotEntryId || undefined,
       weight: weightVal,
       repetitions: repsVal,
       date: new Date().toISOString()
     });
-    entry.loggedByRow[ri] = { id: log.id, weight: weightVal, reps: repsVal };
+    set.logged = true;
+    set.logId = log.id;
+    set.weight = weightVal;
+    set.reps = repsVal;
     entry.restEndMs = Date.now() + (entry.restSeconds*1000);
+
+    const prevBest = w.sessionBest[entry.exerciseId];
+    const isPR = (prevBest !== undefined) && weightVal > prevBest;
+    if(prevBest === undefined || weightVal > prevBest){
+      w.sessionBest[entry.exerciseId] = weightVal;
+    }
+
     setActive(w);
     renderActiveWorkout();
+    triggerSetFeedback(isPR, originX, originY, entry.name, weightVal, prevBest);
   }catch(e){
     alert("Couldn't log set: " + e.message);
   }
 }
 
-async function unlogSet(idx, ri){
+async function unlogSet(idx, si){
   const w = getActive();
   if(!w) return;
   const entry = w.entries[idx];
-  const logged = entry.loggedByRow[ri];
-  if(!logged) return;
-  if(!confirm("Remove this set?")) return;
+  const set = entry.sets[si];
+  if(!set.logged) return;
+  if(!confirm("Unmark this set as logged? (the row stays so you can re-enter it; use ✕ to remove the row entirely)")) return;
   try{
-    await apiDelete(`/workoutlog/${logged.id}/`);
-    delete entry.loggedByRow[ri];
+    await apiDelete(`/workoutlog/${set.logId}/`);
+    set.logged = false;
+    set.logId = null;
     setActive(w);
     renderActiveWorkout();
   }catch(e){
@@ -846,7 +1125,7 @@ async function unlogSet(idx, ri){
 async function finishWorkout(){
   const w = getActive();
   if(!w) return;
-  const totalSets = w.entries.reduce((sum,e) => sum + Object.keys(e.loggedByRow||{}).length, 0);
+  const totalSets = w.entries.reduce((sum,e) => sum + e.sets.filter(s => s.logged).length, 0);
   if(!confirm(`Finish workout? ${totalSets} set${totalSets===1?'':'s'} logged.`)) return;
   try{
     await apiPatch(`/workoutsession/${w.sessionId}/`, { time_end: nowTimeISO() });
@@ -870,9 +1149,10 @@ async function discardWorkout(){
   if(!confirm("Discard this workout? Logged sets will be deleted.")) return;
   let failures = 0;
   for(const entry of w.entries){
-    for(const ri of Object.keys(entry.loggedByRow||{})){
+    for(const s of entry.sets){
+      if(!s.logged) continue;
       try{
-        await apiDelete(`/workoutlog/${entry.loggedByRow[ri].id}/`);
+        await apiDelete(`/workoutlog/${s.logId}/`);
       }catch(e){ failures++; }
     }
   }
