@@ -233,6 +233,15 @@ async function exerciseName(id){
   }
 }
 
+function esc(s){
+  if(s === null || s === undefined) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 function fmtDate(d){
   const dt = new Date(d);
   return dt.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
@@ -341,7 +350,7 @@ async function render(){
       showSetup("Token rejected — check it's correct and try again.");
     } else {
       document.getElementById("content").innerHTML = resumeBannerHtml() + tabsHtml() +
-        `<div class="empty">Couldn't load data (${e.message}). Pull to refresh or check your connection.</div>`;
+        `<div class="empty">Couldn't load data (${esc(e.message)}). Pull to refresh or check your connection.</div>`;
     }
   }
 }
@@ -394,7 +403,7 @@ async function renderHistory(sessions, logsBySession, routineById){
       const sets = exGroups[id];
       const setStr = sets.map(x => `${parseFloat(x.weight||0)}kg×${parseFloat(x.repetitions||0)}`).join(", ");
       exHtml += `<div class="exrow">
-        <div><div class="exname">${names[i]}</div><div class="exsets">${setStr}</div></div>
+        <div><div class="exname">${esc(names[i])}</div><div class="exsets">${esc(setStr)}</div></div>
         <div class="pill">${sets.length} set${sets.length===1?'':'s'}</div>
       </div>`;
     });
@@ -404,7 +413,7 @@ async function renderHistory(sessions, logsBySession, routineById){
     card.className = "session-card";
     card.innerHTML = `
       <div class="row-top">
-        <div class="routine-name">${routine ? routine.name : "Workout"}</div>
+        <div class="routine-name">${routine ? esc(routine.name) : "Workout"}</div>
         <div class="date">${fmtDate(s.date)}</div>
       </div>
       <div class="meta">${exIds.length} exercise${exIds.length===1?'':'s'}${s.impression ? " · felt " + ({1:"bad",2:"ok",3:"good"}[s.impression]||"") : ""}</div>
@@ -441,7 +450,7 @@ async function renderPRs(logs){
   let html = resumeBannerHtml() + tabsHtml() + `<section><h2>Personal Records</h2>`;
   for(const r of rows){
     html += `<div class="pr-card">
-      <div><div class="exname">${r.name}</div><div class="prdate">${fmtDate(r.date)}</div></div>
+      <div><div class="exname">${esc(r.name)}</div><div class="prdate">${fmtDate(r.date)}</div></div>
       <div class="prval">${r.weight}kg × ${r.reps}</div>
     </div>`;
   }
@@ -461,8 +470,8 @@ function renderRoutines(routines){
     html += `<div class="routine-card">
       <div class="rtop">
         <div>
-          <div class="rname">${r.name}</div>
-          <div class="rmeta">${r.start} → ${r.end}${r.description ? " · " + r.description : ""}</div>
+          <div class="rname">${esc(r.name)}</div>
+          <div class="rmeta">${esc(r.start)} → ${esc(r.end)}${r.description ? " · " + esc(r.description) : ""}</div>
         </div>
         <button class="startbtn" onclick="startWorkout(${r.id})">▶ Start</button>
       </div>
@@ -543,7 +552,7 @@ function showDayPicker(structure, days){
   overlay.className = "overlay";
   overlay.innerHTML = `<div class="overlay-sheet">
     <h3>Which day?</h3>
-    ${days.map((d,i) => `<div class="opt" data-i="${i}">${d.name}</div>`).join("")}
+    ${days.map((d,i) => `<div class="opt" data-i="${i}">${esc(d.name)}</div>`).join("")}
     <button class="cancel" id="dpCancel">Cancel</button>
   </div>`;
   document.body.appendChild(overlay);
@@ -607,7 +616,7 @@ function renderActiveWorkout(){
   document.getElementById("mainToolbar").style.display = "none";
   document.getElementById("topHeader").innerHTML = `
     <div>
-      <div class="wname">${w.dayName}</div>
+      <div class="wname">${esc(w.dayName)}</div>
       <div class="wtimer" id="wtimer">0 min</div>
     </div>
     <button class="discardbtn" onclick="discardWorkout()">✕</button>
@@ -656,7 +665,7 @@ function renderActiveWorkout(){
     html += `<div class="wex-card ${isDone?'done':''}">
       <div class="wex-top">
         <div>
-          <div class="wex-name">${entry.name}</div>
+          <div class="wex-name">${esc(entry.name)}</div>
           <div class="wex-target">Target: ${entry.setCount} sets · Rest ${fmtRest(entry.restSeconds)} · ${doneCount}/${entry.setCount} done</div>
         </div>
       </div>
