@@ -6,9 +6,11 @@ Guidance for Claude Code in this repo.
 
 Gym Log — a Hevy-style frontend skin over the wger workout API (wger.de), for logging
 and viewing workouts on mobile. Single-page PWA, no build step, deployed as a static
-site on GitHub Pages. History lives in `git log`; no roadmap/docs yet — feature work
-so far has been ad hoc (see recent commits: exercise/set management, active workout
-logging, PWA install support, a stored-XSS fix).
+site on GitHub Pages. App code (`index.html`, `manifest.json`, icons) is imported from
+`CMiller838/gym-dashboard`, where the full commit history of the app itself lives —
+this repo's own `git log` only covers the Claude Code setup layered on top. See
+`docs/ARCHITECTURE.md` for how the single file is organized internally (state, API
+layer, render functions, PWA install flow).
 
 ## Commands
 
