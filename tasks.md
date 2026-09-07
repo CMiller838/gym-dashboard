@@ -18,7 +18,8 @@ Spec: `.claude/specs/phase1_spec.md`. All edits are in `index.html`.
 - [x] Add non-mutating `sortSessionsDesc(list)`
 - [x] Sort `sessions` with `sortSessionsDesc` in `render()` after the generation guard, before stats and `renderHistory` consume it
 - [x] Rewrite `lastTimeForExercise` ordering to use `compareSessionsDesc`, and group the most recent day with `dayKey` instead of exact string equality
-- [ ] Confirm empirically whether the live wger API returns `WorkoutLog.date` as a date or a datetime; record the answer in the phase notes — **not done: needs a live API call, see phase notes below**
+- [x] Confirm empirically whether the live wger API returns `WorkoutLog.date` as a date or a datetime — confirmed via wger's `WorkoutLogSerializer` source: `WorkoutLog.date` is unchanged, still a plain date field
+- [x] Root cause found for "Invalid Date"/unsorted history: `WorkoutSessionSerializer` was changed upstream to return `datetime_start`/`datetime_end` — `date`/`time_start`/`time_end` are now write-only legacy-compat fields, never present on GET. Added `sessionStartKey(s)` (prefers `datetime_start`, falls back to legacy `date`+`time_start`) and routed `compareSessionsDesc`, `fmtDate`, `daysAgo`, and the streak's `uniqueDates` through it; changed the `/workoutsession/` fetch to `ordering=-datetime_start`
 - [x] `updateTimer`: `Math.round` → `Math.floor`, and repaint both `#wtimer` and `#resumeMins`, no-op when neither exists
 - [x] Delete `timerInterval`, its `setInterval(updateTimer, 30000)` and both `clearInterval` calls; call `updateTimer()` from the existing 1 Hz `tickRestTimers`
 - [x] Add `visibilitychange` + `pageshow` listeners that recompute the timer when the app becomes visible (defensive fix for the observed-but-not-reproduced stale timer)
