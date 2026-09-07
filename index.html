@@ -35,13 +35,6 @@
     font-weight:600; color:var(--muted); background:var(--card); border:1px solid var(--border);}
   .tab.active{color:#fff; background:var(--accent); border-color:var(--accent);}
 
-  .resume-banner{margin:14px 16px 0; background:linear-gradient(135deg,#ff5a1f,#ff7a3f);
-    border-radius:14px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center;}
-  .resume-banner .txt{font-weight:700; font-size:14px; color:#fff;}
-  .resume-banner .sub2{font-size:12px; color:rgba(255,255,255,0.85); margin-top:2px;}
-  .resume-banner button{background:#fff; color:#ff5a1f; border:none; border-radius:10px;
-    padding:8px 14px; font-weight:800; font-size:13px;}
-
   .stats-row{display:flex; gap:10px; padding:14px 16px 4px;}
   .stat{flex:1; background:var(--card); border:1px solid var(--border); border-radius:14px;
     padding:14px 10px; text-align:center;}
@@ -72,6 +65,22 @@
   .pr-card .prval{font-weight:800; color:var(--accent); font-size:15px;}
   .pr-card .prdate{color:var(--muted); font-size:11px;}
 
+  .summary-card{display:flex; flex-direction:column; justify-content:center; align-items:center;
+    text-align:center; min-height:60vh; padding:20px;}
+  .summary-hero{font-size:40px; font-weight:800; color:var(--accent);}
+  .summary-sub{color:var(--muted); font-size:14px; margin-top:6px;}
+  .summary-card .pr-card, .summary-card .muscle-row{width:100%; max-width:340px; text-align:left;}
+  .muscle-row{background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:12px 14px; margin-bottom:10px; display:flex; justify-content:space-between;
+    font-size:14px; font-weight:600;}
+  .summary-dots{display:flex; gap:8px; margin:16px 0;}
+  .summary-dots .dot{width:8px; height:8px; border-radius:50%; background:var(--border);}
+  .summary-dots .dot.active{background:var(--accent);}
+  .pr-badge{font-size:11px; font-weight:700; color:var(--accent); border:1px solid var(--accent);
+    border-radius:20px; padding:2px 8px; margin-left:6px; white-space:nowrap;}
+  .summary-card .donebtn{background:var(--accent); color:#fff; border:none; border-radius:10px;
+    padding:12px 20px; font-weight:700; font-size:15px; min-height:44px;}
+
   .routine-card{background:var(--card); border:1px solid var(--border); border-radius:16px;
     padding:16px; margin-bottom:12px;}
   .routine-card .rtop{display:flex; justify-content:space-between; align-items:center; gap:10px;}
@@ -99,6 +108,9 @@
     display:flex; justify-content:center; gap:16px; z-index:20;}
   .toolbar button{background:none; border:none; color:var(--muted); font-size:12px; padding:6px 12px;}
   .toolbar button.reset{color:var(--danger);}
+  .toolbar .resumebtn{flex:1; background:var(--accent); color:#fff; border:none;
+    border-radius:12px; padding:14px 16px; font-weight:800; font-size:14px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
   /* --- Active workout screen --- */
   .workout-header{position:sticky; top:0; z-index:10; background:rgba(13,13,15,0.95);
@@ -106,7 +118,11 @@
     display:flex; justify-content:space-between; align-items:center;}
   .workout-header .wname{font-weight:800; font-size:17px;}
   .workout-header .wtimer{color:var(--accent2); font-size:12px; font-weight:700; margin-top:2px;}
-  .workout-header .discardbtn{color:var(--danger); background:none; border:none; font-size:20px; padding:4px 8px;}
+  .workout-header .discardbtn{color:var(--danger); background:none; border:none; font-size:20px; padding:4px 8px;
+    min-width:44px; height:44px;}
+  .workout-header .backbtn{background:none; border:none; color:var(--text); font-size:26px;
+    line-height:1; min-width:44px; height:44px; padding:0;}
+  .workout-header .wtitle{flex:1; min-width:0;}
 
   .wex-card{background:var(--card); border:1px solid var(--border); border-radius:16px;
     margin:12px 16px; padding:16px; transition:border-color 0.2s;}
@@ -134,18 +150,17 @@
   .settable th{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px;
     font-weight:700; padding:4px 4px; text-align:center;}
   .settable th:first-child{text-align:left;}
-  .settable td{padding:4px; text-align:center; vertical-align:middle;}
-  .setrow .setnum{font-size:13px; font-weight:800; color:var(--muted); width:22px; text-align:left; padding-left:2px;}
-  .setrow .prevcell{font-size:12px; color:var(--muted);}
+  .settable td{padding:3px 2px; text-align:center; vertical-align:middle;}
+  .setrow .setnum{font-size:13px; font-weight:800; color:var(--muted); width:44px; white-space:nowrap; text-align:left; padding-left:2px;}
+  .setrow .prevcell{font-size:11px; color:var(--muted); white-space:nowrap;}
   .setrow input{width:100%; background:var(--card2); border:1px solid var(--border); color:var(--text);
     border-radius:8px; padding:9px 4px; font-size:14px; text-align:center; min-width:0;}
   .setrow.logged input{background:rgba(61,220,132,0.08); border-color:rgba(61,220,132,0.3); color:var(--accent2);}
-  .setrow .actioncell{width:34px;}
-  .setrow .actioncell .rowbtns{display:flex; flex-direction:column; gap:3px; align-items:center;}
+  .setrow .actioncell{width:50px;}
   .setrow .logbtn{background:var(--card2); color:var(--muted); border:1px solid var(--border);
-    border-radius:7px; width:30px; height:24px; font-weight:900; font-size:13px; padding:0;}
+    border-radius:10px; width:44px; height:40px; font-weight:900; font-size:16px; padding:0;}
   .setrow.logged .logbtn{background:var(--accent2); color:#0d0d0f; border-color:var(--accent2);}
-  .setrow .delbtn{background:none; color:var(--muted); border:none; font-size:13px; width:30px; height:18px; padding:0; opacity:0.65;}
+  .setrow .delbtn{background:none; color:var(--muted); border:none; font-size:13px; width:26px; height:26px; padding:0; opacity:0.65; margin-left:2px; vertical-align:middle;}
   .setrow .delbtn:active{opacity:1; color:var(--danger);}
 
   .addsetbtn{margin-top:10px; width:100%; padding:9px; border-radius:10px; border:1px dashed var(--border);
@@ -208,7 +223,7 @@ const API = "https://wger.de/api/v2";
 // short-lived session cookies instead).
 const TOKEN_KEY = "wger_api_token";
 const ACTIVE_KEY = "active_workout";
-const EXINDEX_KEY = "exercise_index_v1";
+const EXINDEX_KEY = "exercise_index_v2";
 const EXINDEX_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 let token = localStorage.getItem(TOKEN_KEY);
 let exerciseCache = {};
@@ -223,8 +238,15 @@ let activeTab = "history";
 let allLogsCache = null; // populated on normal render, used for "last time" lookups
 let exerciseIndex = null; // [{id,name}], lazily built/cached for the exercise picker
 let renderGeneration = 0; // bumped on every render() call; stale calls bail out instead of overwriting fresher state
-let timerInterval = null;
 let restTickInterval = null;
+// ponytail: showMain is deliberately not persisted — a reload/relaunch mid-workout always
+// lands back on the workout screen, never on the backed-out main view (Gate 1A).
+let showMain = false; // true = user backed out of an active workout to browse
+let audioCtx = null;
+// ponytail: summary/summaryCard are deliberately not persisted — a reload during the
+// summary lands on the main screen, which is fine: the workout is already saved by then.
+let summary = null; // { durationMin, totals:{sets,reps,volume}, prs:[], muscles:[] }
+let summaryCard = 0;
 
 function saveExerciseCache(){ localStorage.setItem("exercise_name_cache", JSON.stringify(exerciseCache)); }
 function getActive(){ try{ return JSON.parse(localStorage.getItem(ACTIVE_KEY) || "null"); }catch(e){ return null; } }
@@ -334,14 +356,33 @@ async function loadExerciseIndex(){
   for(const info of infos){
     const name = pickEnglishName(info.translations);
     if(!name) continue;
-    items.push({ id: info.id, name });
+    items.push({ id: info.id, name, cat: (info.category && info.category.name) || "" });
     if(!exerciseCache[info.id]) exerciseCache[info.id] = name;
   }
   items.sort((a,b) => a.name.localeCompare(b.name));
   exerciseIndex = items;
-  try{ localStorage.setItem(EXINDEX_KEY, JSON.stringify({ ts: Date.now(), items })); }catch(e){ /* storage full: cache just won't persist */ }
+  try{
+    localStorage.setItem(EXINDEX_KEY, JSON.stringify({ ts: Date.now(), items }));
+    localStorage.removeItem("exercise_index_v1");
+  }catch(e){ /* storage full: cache just won't persist */ }
   saveExerciseCache();
   return items;
+}
+
+// Synchronous, never fetches — reads whatever index is already in memory/localStorage.
+// Returns null when no index is available, which is the signal to drop the muscle card.
+function exerciseCatMap(){
+  let items = exerciseIndex;
+  if(!items){
+    try{
+      const cached = JSON.parse(localStorage.getItem(EXINDEX_KEY) || "null");
+      items = cached && Array.isArray(cached.items) ? cached.items : null;
+    }catch(e){ items = null; }
+  }
+  if(!items) return null;
+  const map = {};
+  for(const it of items){ if(it.cat) map[it.id] = it.cat; }
+  return map;
 }
 
 function esc(s){
@@ -362,14 +403,31 @@ function daysAgo(dateStr){
   const now = new Date();
   return Math.floor((now - d) / 86400000);
 }
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+function localDateISO(d = new Date()){
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayISO(){ return localDateISO(); }
 function nowTimeISO(){
   const d = new Date();
   return d.toTimeString().slice(0,8);
 }
+function dayKey(v){
+  if(!v) return "";
+  return v.length > 10 ? localDateISO(new Date(v)) : v.slice(0,10);
+}
+function compareSessionsDesc(a, b){
+  const dk = dayKey(b.date).localeCompare(dayKey(a.date));
+  if(dk) return dk;
+  const ts = (b.time_start||"").localeCompare(a.time_start||"");
+  if(ts) return ts;
+  return (b.id||0) - (a.id||0);
+}
+function sortSessionsDesc(list){ return [...list].sort(compareSessionsDesc); }
 
 function showSetup(errMsg){
-  document.getElementById("mainToolbar").style.display = "flex";
+  renderMainHeader();
+  renderToolbar();
   document.getElementById("headerSub").textContent = "not connected";
   document.getElementById("content").innerHTML = `
     <div class="setup">
@@ -411,29 +469,64 @@ function tabsHtml(){
 }
 function setTab(t){ activeTab = t; render(); }
 
-function resumeBannerHtml(){
+function renderMainHeader(){
+  const header = document.getElementById("topHeader");
+  header.className = "topbar";
+  header.innerHTML = `<h1>🏋️ Gym Log</h1><div class="sub" id="headerSub">syncing…</div>`;
+}
+
+function renderToolbar(){
+  const bar = document.getElementById("mainToolbar");
   const w = getActive();
-  if(!w) return "";
-  const mins = Math.max(0, Math.round((Date.now() - w.startedAtMs) / 60000));
-  return `<div class="resume-banner">
-    <div><div class="txt">${w.dayName} in progress</div><div class="sub2">${mins} min elapsed · tap to resume</div></div>
-    <button onclick="renderActiveWorkout()">Resume</button>
-  </div>`;
+  bar.innerHTML = w
+    ? `<button class="resumebtn" onclick="renderActiveWorkout()">▶ ${esc(w.dayName)} · <span id="resumeMins">${Math.max(0, Math.floor((Date.now() - w.startedAtMs) / 60000))}</span> min</button>`
+    : `<button onclick="location.reload()">↻ Refresh</button><button class="reset" onclick="resetToken()">⎋ Change token</button>`;
+  bar.style.display = "flex";
+}
+
+function backToMain(){ showMain = true; render(); }
+
+function primeAudio(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+  }catch(e){ /* audio unavailable — set logging must still work */ }
+}
+
+// ponytail: no mute toggle — iOS ringer switch silences WebAudio, Android does not;
+// add a persisted toggle only if it annoys.
+function beep(freqs){
+  try{
+    if(!audioCtx) return;
+    freqs.forEach((freq, i) => {
+      const t0 = audioCtx.currentTime + i*0.07;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.linearRampToValueAtTime(0.25, t0 + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.07);
+    });
+  }catch(e){ /* audio unavailable — set logging must still work */ }
 }
 
 async function render(){
   if(!token){ showSetup(); return; }
   const active = getActive();
-  if(active){ renderActiveWorkout(); return; }
+  if(active && !showMain){ renderActiveWorkout(); return; }
 
   const myGeneration = ++renderGeneration;
 
-  document.getElementById("mainToolbar").style.display = "flex";
-  document.getElementById("headerSub").textContent = "syncing…";
-  document.getElementById("content").innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="loading">Loading…</div>`;
+  renderMainHeader();
+  renderToolbar();
+  document.getElementById("content").innerHTML = tabsHtml() + `<div class="loading">Loading…</div>`;
 
   try{
-    const [sessions, logs, routines] = await Promise.all([
+    let [sessions, logs, routines] = await Promise.all([
       apiAll(`/workoutsession/?format=json&ordering=-date&limit=100`),
       apiAll(`/workoutlog/?format=json&ordering=-date&limit=500`),
       apiAll(`/routine/?format=json&is_template=false&limit=100`)
@@ -443,6 +536,7 @@ async function render(){
     // and finished while we were awaiting the network — let it own the screen.
     if(myGeneration !== renderGeneration) return;
 
+    sessions = sortSessionsDesc(sessions);
     allLogsCache = logs;
 
     document.getElementById("headerSub").textContent =
@@ -470,7 +564,7 @@ async function render(){
       showSetup("Token rejected — check it's correct and try again.");
     } else {
       const msg = e.message === "timeout" ? "request timed out" : e.message;
-      document.getElementById("content").innerHTML = resumeBannerHtml() + tabsHtml() +
+      document.getElementById("content").innerHTML = tabsHtml() +
         `<div class="empty">Couldn't load data (${esc(msg)}). Pull to refresh or check your connection.</div>`;
     }
   }
@@ -479,7 +573,7 @@ async function render(){
 async function renderHistory(sessions, logsBySession, routineById){
   const content = document.getElementById("content");
   if(!sessions.length){
-    content.innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="empty">No workouts logged yet.<br>Tap Routines → Start to log your first one.</div>`;
+    content.innerHTML = tabsHtml() + `<div class="empty">No workouts logged yet.<br>Tap Routines → Start to log your first one.</div>`;
     return;
   }
 
@@ -491,13 +585,13 @@ async function renderHistory(sessions, logsBySession, routineById){
   checkDate.setHours(0,0,0,0);
   const dateSet = new Set(uniqueDates);
   for(let i=0;i<400;i++){
-    const iso = checkDate.toISOString().slice(0,10);
+    const iso = localDateISO(checkDate);
     if(dateSet.has(iso)){ streak++; checkDate.setDate(checkDate.getDate()-1); }
     else if(i===0){ checkDate.setDate(checkDate.getDate()-1); continue; }
     else break;
   }
 
-  let html = resumeBannerHtml() + tabsHtml();
+  let html = tabsHtml();
   html += `<div class="stats-row">
     <div class="stat"><div class="num">${totalSessions}</div><div class="lbl">Total</div></div>
     <div class="stat"><div class="num">${last7}</div><div class="lbl">Last 7d</div></div>
@@ -547,7 +641,7 @@ async function renderHistory(sessions, logsBySession, routineById){
 async function renderPRs(logs){
   const content = document.getElementById("content");
   if(!logs.length){
-    content.innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="empty">No sets logged yet — PRs will show up once you have data.</div>`;
+    content.innerHTML = tabsHtml() + `<div class="empty">No sets logged yet — PRs will show up once you have data.</div>`;
     return;
   }
   const bestByExercise = {};
@@ -561,14 +655,14 @@ async function renderPRs(logs){
   }
   const exIds = Object.keys(bestByExercise);
   if(!exIds.length){
-    document.getElementById("content").innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="empty">No weighted sets logged yet.</div>`;
+    document.getElementById("content").innerHTML = tabsHtml() + `<div class="empty">No weighted sets logged yet.</div>`;
     return;
   }
   const names = await mapWithConcurrency(exIds, 5, id => exerciseName(id));
   const rows = exIds.map((id,i) => ({ name: names[i], ...bestByExercise[id] }))
     .sort((a,b) => b.weight - a.weight);
 
-  let html = resumeBannerHtml() + tabsHtml() + `<section><h2>Personal Records</h2>`;
+  let html = tabsHtml() + `<section><h2>Personal Records</h2>`;
   for(const r of rows){
     html += `<div class="pr-card">
       <div><div class="exname">${esc(r.name)}</div><div class="prdate">${fmtDate(r.date)}</div></div>
@@ -582,10 +676,10 @@ async function renderPRs(logs){
 function renderRoutines(routines){
   const content = document.getElementById("content");
   if(!routines.length){
-    content.innerHTML = resumeBannerHtml() + tabsHtml() + `<div class="empty">No routines found.</div>`;
+    content.innerHTML = tabsHtml() + `<div class="empty">No routines found.</div>`;
     return;
   }
-  let html = resumeBannerHtml() + tabsHtml() + `<section><h2>Your Routines</h2>`;
+  let html = tabsHtml() + `<section><h2>Your Routines</h2>`;
   const sorted = [...routines].sort((a,b) => new Date(b.created) - new Date(a.created));
   for(const r of sorted){
     html += `<div class="routine-card">
@@ -617,22 +711,51 @@ function parseConfigValue(configArr, fallback){
   return fallback;
 }
 
+// Returns { [exerciseId]: { w, v } } — w is the heaviest single-set weight ever
+// logged, v the heaviest single-set volume (weight*reps) ever logged, tracked
+// independently since the heaviest-weight set and highest-volume set usually differ.
 function computeBestByExercise(logs){
   const m = {};
   for(const l of (logs||[])){
     const w = parseFloat(l.weight || 0);
     if(w <= 0) continue;
-    if(!(l.exercise in m) || w > m[l.exercise]) m[l.exercise] = w;
+    const reps = parseFloat(l.repetitions ?? l.reps ?? 0);
+    const v = w * reps;
+    const cur = m[l.exercise] || { w: 0, v: 0 };
+    m[l.exercise] = { w: Math.max(cur.w, w), v: Math.max(cur.v, v) };
   }
   return m;
 }
 
+// prev is the {w,v} best record for this exercise, or undefined (first-ever set).
+// Strictly-greater on each track, independent of each other.
+function classifySetPR(prev, weight, reps){
+  if(!prev) return { weightPR:false, volumePR:false };
+  return { weightPR: weight > prev.w, volumePR: (weight*reps) > prev.v };
+}
+
+// Reduce over entries[].sets, counting only logged sets. Never produces NaN.
+function summaryTotals(entries){
+  let sets = 0, reps = 0, volume = 0;
+  for(const entry of (entries||[])){
+    for(const s of (entry.sets||[])){
+      if(!s.logged) continue;
+      const w = +s.weight || 0, r = +s.reps || 0;
+      sets++; reps += r; volume += w*r;
+    }
+  }
+  return { sets, reps, volume };
+}
+
 function lastTimeForExercise(exerciseId, logs){
+  // ponytail: only the last 500 fetched logs are searched (see the `limit=500` fetches);
+  // an exercise not performed within that window shows a blank Previous column — widen the
+  // fetch window if this bites.
   const exLogs = (logs||[]).filter(l => l.exercise === exerciseId)
-    .slice().sort((a,b)=> new Date(b.date)-new Date(a.date) || b.id-a.id);
+    .slice().sort(compareSessionsDesc);
   if(!exLogs.length) return [];
-  const mostRecentDate = exLogs[0].date;
-  return exLogs.filter(l => l.date === mostRecentDate)
+  const mostRecentDay = dayKey(exLogs[0].date);
+  return exLogs.filter(l => dayKey(l.date) === mostRecentDay)
     .sort((a,b)=>a.id-b.id)
     .map(l => ({ weight: parseFloat(l.weight||0), reps: parseFloat(l.repetitions||0) }));
 }
@@ -728,9 +851,11 @@ async function launchDay(structure, day){
       dayName: day.name || structure.name,
       startedAtMs: Date.now(),
       entries,
-      sessionBest: computeBestByExercise(logs) // exerciseId -> heaviest weight ever logged, updated live as PRs happen
+      best: computeBestByExercise(logs), // exerciseId -> {w,v} best ever logged, updated live as PRs happen
+      prs: []
     };
     setActive(w);
+    loadExerciseIndex().catch(() => {}); // fire-and-forget warm-up so the muscle card is ready at finish
     renderActiveWorkout();
   }catch(e){
     if(String(e.message).includes("500") || String(e.message).toLowerCase().includes("unique")){
@@ -750,11 +875,18 @@ function fmtRest(sec){
 function renderActiveWorkout(){
   const w = getActive();
   if(!w){ render(); return; }
-  if(!w.sessionBest) w.sessionBest = computeBestByExercise(allLogsCache || []); // migrate any workout saved before this field existed
+  // ponytail: re-deriving from allLogsCache mid-workout folds this session's own already-
+  // POSTed sets into the "best ever" baseline, so a workout in flight across this upgrade
+  // loses PR detection for its remaining sets. One-time, self-healing next workout.
+  if(!w.best) w.best = computeBestByExercise(allLogsCache || []); // migrate pre-Phase-3 workouts
+  showMain = false;
 
   document.getElementById("mainToolbar").style.display = "none";
-  document.getElementById("topHeader").innerHTML = `
-    <div>
+  const topHeader = document.getElementById("topHeader");
+  topHeader.className = "workout-header";
+  topHeader.innerHTML = `
+    <button class="backbtn" onclick="backToMain()">‹</button>
+    <div class="wtitle">
       <div class="wname">${esc(w.dayName)}</div>
       <div class="wtimer" id="wtimer">0 min</div>
     </div>
@@ -772,27 +904,25 @@ function renderActiveWorkout(){
       const prevStr = prev ? `${prev.weight}kg×${prev.reps}` : "—";
       if(s.logged){
         rowsHtml += `<tr class="setrow logged">
-          <td class="setnum">${si+1}</td>
+          <td class="setnum">${si+1}<button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button></td>
           <td class="prevcell">${prevStr}</td>
           <td><input value="${s.weight}" disabled></td>
           <td><input value="${s.reps}" disabled></td>
-          <td class="actioncell"><div class="rowbtns">
+          <td class="actioncell">
             <button class="logbtn" onclick="unlogSet(${idx},${si})">✓</button>
-            <button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button>
-          </div></td>
+          </td>
         </tr>`;
       } else {
         const suggestWeight = s.weight;
         const suggestReps = s.reps;
         rowsHtml += `<tr class="setrow">
-          <td class="setnum">${si+1}</td>
+          <td class="setnum">${si+1}<button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button></td>
           <td class="prevcell">${prevStr}</td>
           <td><input type="number" inputmode="decimal" id="w_${idx}_${si}" placeholder="${suggestWeight||'kg'}" value="${suggestWeight||''}"></td>
           <td><input type="number" inputmode="decimal" id="r_${idx}_${si}" placeholder="${suggestReps||'reps'}" value="${suggestReps||''}"></td>
-          <td class="actioncell"><div class="rowbtns">
+          <td class="actioncell">
             <button class="logbtn" onclick="logSet(${idx},${si})">✓</button>
-            <button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button>
-          </div></td>
+          </td>
         </tr>`;
       }
     });
@@ -840,9 +970,7 @@ function renderActiveWorkout(){
     document.body.appendChild(bar);
   }
 
-  if(timerInterval) clearInterval(timerInterval);
   updateTimer();
-  timerInterval = setInterval(updateTimer, 30000);
 
   if(restTickInterval) clearInterval(restTickInterval);
   restTickInterval = setInterval(tickRestTimers, 1000);
@@ -851,15 +979,17 @@ function renderActiveWorkout(){
 function updateTimer(){
   const w = getActive();
   if(!w) return;
+  const mins = Math.max(0, Math.floor((Date.now() - w.startedAtMs) / 60000));
   const el = document.getElementById("wtimer");
-  if(!el) return;
-  const mins = Math.max(0, Math.round((Date.now() - w.startedAtMs) / 60000));
-  el.textContent = `${mins} min elapsed`;
+  if(el) el.textContent = `${mins} min elapsed`;
+  const rm = document.getElementById("resumeMins");
+  if(rm) rm.textContent = mins;
 }
 
 function tickRestTimers(){
   const w = getActive();
   if(!w) return;
+  updateTimer();
   w.entries.forEach((entry, idx) => {
     const box = document.getElementById(`rest_${idx}`);
     if(!entry.restEndMs){ if(box) box.remove(); return; }
@@ -1030,10 +1160,25 @@ function spawnConfetti(x, y, count, colors, big){
   }
 }
 
-function showPRToast(name, weight, prevBest){
+// Upserts one record per exerciseId into w.prs, overwriting only the track(s) that
+// fired this set — a later set on one track must not clobber an earlier hit on the other.
+function recordPR(w, entry, weight, reps, prev, pr){
+  let rec = w.prs.find(r => r.exerciseId === entry.exerciseId);
+  if(!rec){
+    rec = { exerciseId: entry.exerciseId, name: entry.name, weightPR: null, volumePR: null };
+    w.prs.push(rec);
+  }
+  rec.name = entry.name;
+  if(pr.weightPR) rec.weightPR = { weight, reps, prev: prev ? prev.w : null };
+  if(pr.volumePR) rec.volumePR = { weight, reps, volume: weight*reps, prev: prev ? prev.v : null };
+}
+
+// ponytail: kg is hardcoded throughout (renderPRs, here, the summary) — wger's weight_unit
+// is ignored; add real unit handling only if a lb user actually shows up.
+function showPRToast(name, label, detail){
   const el = document.createElement("div");
   el.className = "pr-toast";
-  el.innerHTML = `🏆 New PR! <span class="prsub">${esc(name)} — ${weight}kg${prevBest ? ` (was ${prevBest}kg)` : ""}</span>`;
+  el.innerHTML = `🏆 ${label}! <span class="prsub">${esc(name)} — ${detail}</span>`;
   document.body.appendChild(el);
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("show")));
   setTimeout(() => {
@@ -1044,19 +1189,23 @@ function showPRToast(name, weight, prevBest){
 
 // Standard tier: quick buzz + a small confetti pop, for every logged set.
 // PR tier (isPR=true): longer celebratory buzz pattern, a much bigger confetti burst,
-// and a banner sliding down from the top — reserved for beating a previous best weight.
-function triggerSetFeedback(isPR, x, y, name, weight, prevBest){
+// and a banner sliding down from the top — for beating a previous best weight and/or
+// single-set volume (weight x reps), tracked independently.
+function triggerSetFeedback(isPR, x, y, name, label, detail){
   if(isPR){
     vibrate([50,40,50,40,150]);
+    beep([880,1175,1568]);
     spawnConfetti(x, y, 40, ["#ffd23d","#ff5a1f","#3ddc84","#5ac8ff","#ffffff"], true);
-    showPRToast(name, weight, prevBest);
+    showPRToast(name, label, detail);
   } else {
     vibrate(35);
+    beep([880]);
     spawnConfetti(x, y, 14, ["#3ddc84","#5ac8ff","#ffd23d"], false);
   }
 }
 
 async function logSet(idx, si){
+  primeAudio();
   const w = getActive();
   if(!w) return;
   const entry = w.entries[idx];
@@ -1090,15 +1239,32 @@ async function logSet(idx, si){
     set.reps = repsVal;
     entry.restEndMs = Date.now() + (entry.restSeconds*1000);
 
-    const prevBest = w.sessionBest[entry.exerciseId];
-    const isPR = (prevBest !== undefined) && weightVal > prevBest;
-    if(prevBest === undefined || weightVal > prevBest){
-      w.sessionBest[entry.exerciseId] = weightVal;
+    const prev = w.best[entry.exerciseId];
+    const pr = classifySetPR(prev, weightVal, repsVal);
+    const isPR = pr.weightPR || pr.volumePR;
+    w.best[entry.exerciseId] = {
+      w: Math.max(weightVal, prev ? prev.w : 0),
+      v: Math.max(weightVal * repsVal, prev ? prev.v : 0)
+    };
+    let label = "", detail = "";
+    if(isPR){
+      recordPR(w, entry, weightVal, repsVal, prev, pr);
+      if(pr.weightPR && pr.volumePR){
+        label = "Weight + Volume PR";
+        detail = `${weightVal}kg × ${repsVal}`;
+      } else if(pr.weightPR){
+        label = "Weight PR";
+        detail = `${weightVal}kg${prev ? ` (was ${prev.w}kg)` : ""}`;
+      } else {
+        label = "Volume PR";
+        const vol = weightVal * repsVal;
+        detail = `${weightVal}kg × ${repsVal} = ${vol}kg${prev ? ` (was ${prev.v}kg)` : ""}`;
+      }
     }
 
     setActive(w);
     renderActiveWorkout();
-    triggerSetFeedback(isPR, originX, originY, entry.name, weightVal, prevBest);
+    triggerSetFeedback(isPR, originX, originY, entry.name, label, detail);
   }catch(e){
     alert("Couldn't log set: " + e.message);
   }
@@ -1122,25 +1288,107 @@ async function unlogSet(idx, si){
   }
 }
 
+// ponytail: category granularity only (Chest/Back/Legs...), not per-muscle — upgrade if
+// this card proves too coarse.
+function buildSummary(w){
+  const durationMin = Math.max(0, Math.floor((Date.now() - w.startedAtMs) / 60000));
+  const totals = summaryTotals(w.entries);
+  const prs = w.prs || [];
+  const catMap = exerciseCatMap();
+  const muscleTally = {};
+  if(catMap){
+    for(const entry of w.entries){
+      const cat = catMap[entry.exerciseId];
+      if(!cat) continue;
+      const loggedCount = entry.sets.filter(s => s.logged).length;
+      if(loggedCount > 0) muscleTally[cat] = (muscleTally[cat] || 0) + loggedCount;
+    }
+  }
+  const muscles = Object.entries(muscleTally).map(([cat,sets]) => ({cat,sets})).sort((a,b)=>b.sets-a.sets);
+  return { durationMin, totals, prs, muscles };
+}
+
+function summaryCards(){
+  const cards = ["volume", "prs"];
+  if(summary.muscles.length > 0) cards.push("muscles");
+  return cards;
+}
+
+function renderSummary(){
+  document.getElementById("mainToolbar").style.display = "none";
+  renderMainHeader();
+  const cards = summaryCards();
+  const card = cards[summaryCard];
+  const isLast = summaryCard === cards.length - 1;
+
+  let body = "";
+  if(card === "volume"){
+    body = `<div class="summary-hero">${summary.totals.volume}kg</div>
+      <div class="summary-sub">${summary.totals.sets} sets · ${summary.totals.reps} reps · ${summary.durationMin} min</div>`;
+  } else if(card === "prs"){
+    if(!summary.prs.length){
+      body = `<div class="summary-sub">No PRs this time — still counts.</div>`;
+    } else {
+      body = summary.prs.map(r => {
+        let badges = "";
+        let figures = "";
+        if(r.weightPR){ badges += `<span class="pr-badge">Weight PR</span>`; figures += `${r.weightPR.weight}kg × ${r.weightPR.reps}`; }
+        if(r.volumePR){ badges += `<span class="pr-badge">Volume PR</span>`; figures += (figures?" · ":"") + `${r.volumePR.volume}kg vol`; }
+        return `<div class="pr-card">
+          <div><div class="exname">${esc(r.name)}${badges}</div><div class="prdate">${figures}</div></div>
+        </div>`;
+      }).join("");
+    }
+  } else if(card === "muscles"){
+    body = summary.muscles.map(m => `<div class="muscle-row"><span>${esc(m.cat)}</span><span>${m.sets} sets</span></div>`).join("");
+  }
+
+  const dots = cards.map((c,i) => `<span class="dot ${i===summaryCard?'active':''}"></span>`).join("");
+
+  document.getElementById("content").innerHTML = `
+    <div class="summary-card" onclick="nextSummaryCard()">
+      ${body}
+      <div class="summary-dots">${dots}</div>
+      <button class="donebtn" onclick="event.stopPropagation(); nextSummaryCard()">${isLast ? "Done" : "Next"}</button>
+    </div>`;
+}
+
+function nextSummaryCard(){
+  const cards = summaryCards();
+  if(summaryCard >= cards.length - 1){ closeSummary(); return; }
+  summaryCard++;
+  renderSummary();
+}
+
+function closeSummary(){
+  summary = null;
+  summaryCard = 0;
+  render();
+}
+
 async function finishWorkout(){
   const w = getActive();
   if(!w) return;
   const totalSets = w.entries.reduce((sum,e) => sum + e.sets.filter(s => s.logged).length, 0);
   if(!confirm(`Finish workout? ${totalSets} set${totalSets===1?'':'s'} logged.`)) return;
   try{
+    // ponytail: cross-midnight sessions (start before, end after local midnight) store
+    // time_end < time_start — wger has no way to represent that; not fixed here.
     await apiPatch(`/workoutsession/${w.sessionId}/`, { time_end: nowTimeISO() });
   }catch(e){
     // Your logged sets are already saved server-side (each one was its own POST), so this
     // is safe to continue past — but the session's end time won't be recorded, so say so.
     alert("Workout saved, but couldn't record the finish time (" + e.message + "). Your logged sets are safe.");
   }
+  const s = buildSummary(w); // before clearActive() — needs w.entries/best/prs still intact
   clearActive();
-  if(timerInterval) clearInterval(timerInterval);
   if(restTickInterval) clearInterval(restTickInterval);
   const bar = document.getElementById("finishBar");
   if(bar) bar.remove();
   activeTab = "history";
-  render();
+  if(s.totals.sets === 0){ render(); return; }
+  summary = s; summaryCard = 0;
+  renderSummary();
 }
 
 async function discardWorkout(){
@@ -1161,7 +1409,6 @@ async function discardWorkout(){
     await apiDelete(`/workoutsession/${w.sessionId}/`);
   }catch(e){ sessionDeleted = false; }
   clearActive();
-  if(timerInterval) clearInterval(timerInterval);
   if(restTickInterval) clearInterval(restTickInterval);
   const bar = document.getElementById("finishBar");
   if(bar) bar.remove();
@@ -1174,6 +1421,125 @@ async function discardWorkout(){
   }
   render();
 }
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && getActive()) updateTimer();
+});
+window.addEventListener("pageshow", () => { if(getActive()) updateTimer(); });
+
+function runSelfTest(){
+  let checks = 0, failed = 0;
+  function assert(cond, label){
+    checks++;
+    if(!cond){ failed++; console.assert(false, label); }
+  }
+
+  assert(localDateISO(new Date(2026,0,5,0,30)) === "2026-01-05", "localDateISO zero-pad / no roll-forward");
+  {
+    const d = new Date(2026,5,15,0,0,0,0); // local midnight
+    assert(localDateISO(d) === "2026-06-15", "localDateISO matches local calendar day at local midnight");
+  }
+  assert(dayKey("2026-09-07") === "2026-09-07", "dayKey date-only passthrough");
+  assert(dayKey(new Date(Date.UTC(2026,8,7,21,30)).toISOString()) === localDateISO(new Date(Date.UTC(2026,8,7,21,30))), "dayKey datetime uses local day");
+  assert(dayKey(null) === "", "dayKey null -> empty string");
+
+  assert(compareSessionsDesc({date:"2026-09-07"},{date:"2026-09-06"}) < 0, "compareSessionsDesc: later day first");
+  assert(compareSessionsDesc({date:"2026-09-07",time_start:"10:00:00"},{date:"2026-09-07",time_start:"09:00:00"}) < 0, "compareSessionsDesc: same day, later time_start first");
+  assert(compareSessionsDesc({date:"2026-09-07",time_start:"09:00:00",id:5},{date:"2026-09-07",time_start:"09:00:00",id:3}) < 0, "compareSessionsDesc: same day+time, higher id first");
+  assert(compareSessionsDesc({date:"2026-09-07",time_start:null},{date:"2026-09-07",time_start:"09:00:00"}) > 0, "compareSessionsDesc: missing time_start sorts after present one");
+  assert(compareSessionsDesc({date:"2026-09-07",time_start:"09:00:00",id:1},{date:"2026-09-07",time_start:"09:00:00",id:1}) === 0, "compareSessionsDesc: identical inputs -> 0");
+
+  {
+    const list = [{date:"2026-09-07",time_start:"09:00:00",id:1},{date:"2026-09-07",time_start:"10:00:00",id:2}];
+    const sorted = sortSessionsDesc(list);
+    assert(list[0].id === 1, "sortSessionsDesc does not mutate input");
+    assert(sorted[0].id === 2 && sorted[1].id === 1, "sortSessionsDesc: later time_start first on same day");
+  }
+
+  {
+    assert(lastTimeForExercise(99, []).length === 0, "lastTimeForExercise: unknown exercise -> []");
+    const logs = [
+      {exercise:7, date:"2026-09-05", id:1, weight:"50", repetitions:"5"},
+      {exercise:7, date:"2026-09-05", id:2, weight:"52.5", repetitions:"5"},
+      {exercise:7, date:"2026-09-06", id:3, weight:"55", repetitions:"5"}
+    ];
+    const r = lastTimeForExercise(7, logs);
+    assert(r.length === 1 && r[0].weight === 55, "lastTimeForExercise: returns only most recent day, ascending id");
+
+    const fallbackLogs = [
+      {exercise:7, date:"2026-09-01", id:1, weight:"40", repetitions:"8"},
+      {exercise:8, date:"2026-09-06", id:2, weight:"20", repetitions:"10"}
+    ];
+    const fb = lastTimeForExercise(7, fallbackLogs);
+    assert(fb.length === 1 && fb[0].weight === 40, "lastTimeForExercise: falls back to older day when absent from newest day");
+
+    const dtLogs = [
+      {exercise:7, date:"2026-09-06T18:00:00Z", id:1, weight:"10", repetitions:"10"},
+      {exercise:7, date:"2026-09-06T18:00:05Z", id:2, weight:"12", repetitions:"10"}
+    ];
+    const dt = lastTimeForExercise(7, dtLogs);
+    assert(dt.length === 2, "lastTimeForExercise: datetime dates differing by seconds still group as one day");
+  }
+
+  {
+    const topHeader = document.getElementById("topHeader");
+    topHeader.innerHTML = `<button class="backbtn">‹</button><div class="wtitle"><div class="wname">X</div></div>`;
+    topHeader.className = "workout-header";
+    renderMainHeader();
+    assert(document.getElementById("headerSub") !== null, "renderMainHeader: #headerSub restored");
+    assert(document.getElementById("topHeader").className === "topbar", "renderMainHeader: className restored to topbar");
+    renderMainHeader();
+    assert(document.getElementById("headerSub") !== null, "renderMainHeader: idempotent #headerSub");
+    assert(document.getElementById("topHeader").className === "topbar", "renderMainHeader: idempotent className");
+  }
+
+  {
+    const logs = [
+      {exercise:1, weight:"100", repetitions:"2"},
+      {exercise:1, weight:"60", reps:"10"},
+      {exercise:1, weight:"0", repetitions:"20"}
+    ];
+    const best = computeBestByExercise(logs);
+    assert(best[1].w === 100, "computeBestByExercise: heaviest weight");
+    assert(best[1].v === 600, "computeBestByExercise: heaviest volume independent of heaviest weight");
+    assert(!(2 in best), "computeBestByExercise: weight<=0 logs skipped");
+  }
+
+  {
+    assert(JSON.stringify(classifySetPR(undefined, 50, 5)) === JSON.stringify({weightPR:false,volumePR:false}), "classifySetPR: undefined prev -> neither");
+    const prev = {w:100, v:500};
+    assert(classifySetPR(prev, 110, 4).weightPR === true, "classifySetPR: heavier weight -> weightPR");
+    assert(classifySetPR(prev, 110, 4).volumePR === false, "classifySetPR: heavier weight, lower vol -> not volumePR");
+    assert(classifySetPR(prev, 100, 10).volumePR === true, "classifySetPR: same weight more reps -> volumePR");
+    assert(classifySetPR(prev, 100, 10).weightPR === false, "classifySetPR: same weight -> not weightPR");
+    assert(classifySetPR(prev, 110, 10).weightPR === true && classifySetPR(prev, 110, 10).volumePR === true, "classifySetPR: both tracks beaten -> both true");
+    assert(classifySetPR(prev, 100, 5).weightPR === false, "classifySetPR: equalling prev.w exactly -> not a PR");
+    assert(classifySetPR(prev, 90, 4).weightPR === false && classifySetPR(prev, 90, 4).volumePR === false, "classifySetPR: lower on both -> neither");
+  }
+
+  {
+    const entries = [
+      { sets: [{logged:true, weight:50, reps:5}, {logged:false, weight:100, reps:10}, {logged:true, weight:"", reps:5}] }
+    ];
+    const t = summaryTotals(entries);
+    assert(t.sets === 2, "summaryTotals: counts only logged sets");
+    assert(t.reps === 10, "summaryTotals: reps sum ignores unlogged row");
+    assert(t.volume === 250 && !isNaN(t.volume), "summaryTotals: blank weight contributes 0, no NaN");
+  }
+
+  {
+    const w = { prs: [] };
+    const entry = { exerciseId: 5, name: "Bench" };
+    recordPR(w, entry, 100, 3, undefined, {weightPR:true, volumePR:false});
+    recordPR(w, entry, 90, 10, {w:100,v:300}, {weightPR:false, volumePR:true});
+    assert(w.prs.length === 1, "recordPR: one record per exerciseId");
+    assert(w.prs[0].weightPR && w.prs[0].weightPR.weight === 100, "recordPR: weight track not overwritten by later volume-only set");
+    assert(w.prs[0].volumePR && w.prs[0].volumePR.weight === 90, "recordPR: volume track recorded");
+  }
+
+  console.log(`selftest: ${checks} checks, ${failed} failed`);
+}
+if(location.hash === "#selftest") runSelfTest();
 
 render();
 </script>
