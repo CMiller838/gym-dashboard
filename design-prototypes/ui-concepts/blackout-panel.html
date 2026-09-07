@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blackout Panel — Gym Log</title>
+<style>
+  :root{
+    --bg:#000; --panel:#0a0a0a; --line:#232323;
+    --ink:#f5f5f5; --ink-dim:#6e6e6e;
+    --accent:#00e0c6; --bad:#ff4d4d; --pr:#ffd23f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'DejaVu Sans Mono','SFMono-Regular',ui-monospace,monospace;
+    -webkit-font-smoothing:antialiased;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:100px;}
+  header{padding:22px 18px 16px;display:flex;justify-content:space-between;align-items:center;
+    border-bottom:2px solid var(--line);}
+  header h1{font-size:16px;letter-spacing:.1em;text-transform:uppercase;margin:0;}
+  header .date{font-size:13px;color:var(--ink-dim);}
+  .hero{padding:20px 18px;border-bottom:2px solid var(--line);background:var(--panel);}
+  .hero .label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;font-weight:700;}
+  .hero .big{font-size:38px;font-weight:700;letter-spacing:-.02em;}
+  .hero .sub{font-size:14px;color:var(--ink-dim);margin-top:6px;}
+  .btn{display:block;width:100%;background:var(--accent);color:#000;border:none;
+    padding:22px;font:inherit;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    font-size:16px;cursor:pointer;border-radius:0;min-height:64px;}
+  .btn:active{background:#00b8a3}
+  .btn.secondary{background:transparent;border:2px solid var(--line);color:var(--ink);}
+  .btn.danger{background:var(--bad);color:#fff;}
+  section{padding:18px;border-bottom:2px solid var(--line);}
+  section h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink-dim);margin:0 0 14px;font-weight:700;}
+  table{width:100%;border-collapse:collapse;}
+  tr{border-top:1px solid var(--line);}
+  tr:first-child{border-top:none;}
+  td{padding:14px 4px;font-size:16px;}
+  td.set-num{color:var(--ink-dim);width:32px;font-weight:700;}
+  td.weight,td.reps{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px;}
+  td.check{width:56px;text-align:right;}
+  .tap{display:inline-flex;align-items:center;justify-content:center;
+    width:48px;height:48px;border:2px solid var(--line);color:var(--ink-dim);font-size:20px;}
+  tr.done .tap{background:var(--accent);border-color:var(--accent);color:#000;}
+  tr.done td.weight,tr.done td.reps{color:var(--accent);}
+  .add-set{margin-top:14px;width:100%;padding:16px;background:none;border:2px dashed var(--line);
+    color:var(--ink);font:inherit;font-size:14px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;min-height:56px;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;background:var(--line);}
+  .stat{background:var(--bg);padding:18px 8px;text-align:center;}
+  .stat .n{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:10px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-top:1px solid var(--line);}
+  .row:first-of-type{border-top:none;}
+  .row .name{font-size:16px;font-weight:700;}
+  .row .meta{font-size:13px;color:var(--ink-dim);margin-top:2px;}
+  .badge{font-size:11px;padding:4px 8px;border:2px solid var(--pr);color:var(--pr);
+    letter-spacing:.06em;text-transform:uppercase;font-weight:700;}
+  .empty{padding:28px 16px;text-align:center;color:var(--ink-dim);font-size:14px;
+    border:2px dashed var(--line);}
+  .error{background:#1a0a0a;border:2px solid var(--bad);color:#ff9a9a;
+    padding:14px;font-size:13px;margin-top:10px;font-weight:700;}
+  nav.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;
+    display:flex;background:#000;border-top:2px solid var(--line);}
+  nav.tabbar a{flex:1;text-align:center;padding:16px 0 12px;color:var(--ink-dim);
+    text-decoration:none;font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;
+    min-height:56px;}
+  nav.tabbar a.active{color:var(--accent);}
+  nav.tabbar a .ic{display:block;font-size:22px;margin-bottom:4px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Gym Log</h1>
+    <span class="date">SUN 09.07</span>
+  </header>
+
+  <div class="hero">
+    <div class="label">● Recording — Push Day B</div>
+    <div class="big">32:14</div>
+    <div class="sub">6 sets logged · 3 exercises</div>
+  </div>
+
+  <section>
+    <h2>Bench Press (Barbell)</h2>
+    <table>
+      <tr class="done"><td class="set-num">1</td><td class="weight">60 kg</td><td class="reps">8 reps</td><td class="check"><span class="tap">✓</span></td></tr>
+      <tr class="done"><td class="set-num">2</td><td class="weight">65 kg</td><td class="reps">6 reps</td><td class="check"><span class="tap">✓</span></td></tr>
+      <tr><td class="set-num">3</td><td class="weight">65 kg</td><td class="reps">— reps</td><td class="check"><span class="tap">○</span></td></tr>
+    </table>
+    <button class="add-set">+ Add Set</button>
+  </section>
+
+  <section>
+    <h2>Incline Dumbbell Press</h2>
+    <table>
+      <tr><td class="set-num">1</td><td class="weight">22 kg</td><td class="reps">10 reps</td><td class="check"><span class="tap">○</span></td></tr>
+      <tr><td class="set-num">2</td><td class="weight">22 kg</td><td class="reps">— reps</td><td class="check"><span class="tap">○</span></td></tr>
+    </table>
+    <div class="error">SYNC FAILED — last set not saved to wger. Tap to retry.</div>
+  </section>
+
+  <section>
+    <h2>Today</h2>
+    <div class="stat-grid">
+      <div class="stat"><div class="n">3</div><div class="l">Exercises</div></div>
+      <div class="stat"><div class="n">6</div><div class="l">Sets</div></div>
+      <div class="stat"><div class="n">4,820</div><div class="l">Volume kg</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Recent</h2>
+    <div class="row"><div><div class="name">Pull Day — A</div><div class="meta">FRI · 48 MIN</div></div><span class="badge">PR</span></div>
+    <div class="row"><div><div class="name">Leg Day</div><div class="meta">WED · 55 MIN</div></div></div>
+    <div class="row"><div><div class="name">Push Day — A</div><div class="meta">MON · 41 MIN</div></div></div>
+  </section>
+
+  <section>
+    <h2>Tomorrow</h2>
+    <div class="empty">Nothing scheduled. Pick a routine below.</div>
+    <button class="btn secondary" style="margin-top:14px">Browse Routines</button>
+  </section>
+
+  <div style="padding:0 18px 18px;display:grid;gap:10px">
+    <button class="btn">Finish Workout</button>
+    <button class="btn danger">Discard Session</button>
+  </div>
+</div>
+
+<nav class="tabbar">
+  <a href="#" class="active"><span class="ic">■</span>Home</a>
+  <a href="#"><span class="ic">▶</span>Log</a>
+  <a href="#"><span class="ic">≡</span>History</a>
+  <a href="#"><span class="ic">＋</span>Settings</a>
+</nav>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plate Stack — Gym Log</title>
+<style>
+  :root{
+    --bg:#0d0f12; --card:#15181c; --line:#22262c;
+    --ink:#eef1f4; --ink-dim:#7a828c;
+    --volt:#d4ff3f; --blue:#4fa8ff; --bad:#ff5c5c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Arial Black','Helvetica Neue',Arial,sans-serif;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:100px;}
+  header{padding:22px 18px 6px;display:flex;justify-content:space-between;align-items:center;}
+  header h1{font-size:20px;letter-spacing:-.02em;margin:0;}
+  header .avatar{width:36px;height:36px;border-radius:8px;background:var(--volt);
+    display:flex;align-items:center;justify-content:center;color:#0d0f12;font-weight:900;font-size:14px;}
+  .hero{margin:12px 18px;background:linear-gradient(135deg,#1b1f24,#0d0f12);
+    border:1px solid var(--line);border-radius:6px;padding:22px 18px;position:relative;}
+  .hero .tag{display:inline-block;background:var(--volt);color:#0d0f12;font-size:10px;
+    font-weight:900;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:3px;
+    margin-bottom:10px;}
+  .hero h2{font-size:28px;margin:0 0 4px;letter-spacing:-.03em;font-weight:900;}
+  .hero .sub{font-family:Arial,sans-serif;font-size:13px;color:var(--ink-dim);font-weight:400;}
+  .bar{margin-top:14px;height:6px;background:var(--line);border-radius:3px;overflow:hidden;}
+  .bar .fill{height:100%;width:34%;background:var(--volt);}
+  .btnrow{display:flex;gap:10px;margin-top:16px;}
+  .btn{font-family:Arial,sans-serif;font-weight:800;border:none;border-radius:6px;
+    padding:13px 16px;font-size:13px;cursor:pointer;text-transform:uppercase;letter-spacing:.03em;}
+  .btn-volt{background:var(--volt);color:#0d0f12;flex:1;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);flex:1;}
+  section{padding:0 18px;margin-top:22px;}
+  .sec-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .sec-head h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);
+    margin:0;font-weight:900;}
+  .sec-head a{font-family:Arial,sans-serif;font-size:11px;color:var(--volt);text-decoration:none;}
+  .ex-card{background:var(--card);border:1px solid var(--line);border-radius:6px;
+    padding:14px;margin-bottom:10px;}
+  .ex-card .ex-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .ex-card .ex-name{font-size:15px;font-weight:900;letter-spacing:-.01em;}
+  .ex-card .ex-num{font-family:Arial,sans-serif;font-size:11px;color:var(--ink-dim);}
+  .set{display:grid;grid-template-columns:22px 1fr 1fr 30px;gap:8px;align-items:center;
+    padding:6px 0;font-family:Arial,sans-serif;}
+  .set .idx{font-size:12px;font-weight:900;color:var(--ink-dim);}
+  .set input{background:#0d0f12;border:1px solid var(--line);border-radius:4px;color:var(--ink);
+    padding:8px 4px;text-align:center;font:inherit;font-size:13px;width:100%;}
+  .set .chk{width:26px;height:26px;border-radius:4px;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink-dim);}
+  .set.done .chk{background:var(--volt);border-color:var(--volt);color:#0d0f12;}
+  .set.done input{border-color:var(--volt);}
+  .add{font-family:Arial,sans-serif;width:100%;background:none;border:1px dashed var(--line);
+    color:var(--ink-dim);border-radius:4px;padding:9px;margin-top:6px;font-size:12px;
+    font-weight:700;cursor:pointer;}
+  .rest{display:flex;justify-content:space-between;align-items:center;
+    background:#1c1400;border:1px solid #3a2e00;border-radius:6px;padding:10px 14px;margin-bottom:12px;}
+  .rest .t{font-size:20px;font-weight:900;color:var(--volt);}
+  .rest button{font-family:Arial,sans-serif;background:none;border:1px solid #3a2e00;color:var(--volt);
+    border-radius:4px;padding:6px 10px;font-size:11px;font-weight:700;}
+  .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 6px;text-align:center;}
+  .stat .n{font-size:19px;font-weight:900;}
+  .stat .l{font-family:Arial,sans-serif;font-size:10px;color:var(--ink-dim);margin-top:2px;text-transform:uppercase;}
+  .hist{display:flex;justify-content:space-between;align-items:center;
+    background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:8px;}
+  .hist .name{font-size:14px;font-weight:900;}
+  .hist .meta{font-family:Arial,sans-serif;font-size:11px;color:var(--ink-dim);margin-top:2px;}
+  .tagpr{font-family:Arial,sans-serif;background:#1a2b12;color:#8fe066;font-size:10px;
+    font-weight:700;padding:3px 8px;border-radius:4px;}
+  .tagvol{font-family:Arial,sans-serif;background:#0f2233;color:var(--blue);font-size:10px;
+    font-weight:700;padding:3px 8px;border-radius:4px;}
+  .empty{font-family:Arial,sans-serif;text-align:center;padding:24px 16px;color:var(--ink-dim);
+    font-size:13px;border:1px dashed var(--line);border-radius:6px;}
+  .errbar{font-family:Arial,sans-serif;background:#2a1010;border:1px solid #4a1a1a;color:var(--bad);
+    padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:10px;}
+  nav.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;
+    background:#0d0f12;border-top:1px solid var(--line);display:flex;padding:10px 8px;}
+  nav.tabbar a{flex:1;text-align:center;text-decoration:none;color:var(--ink-dim);
+    font-family:Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  nav.tabbar a.active{color:var(--volt);}
+  nav.tabbar a .ic{display:block;font-size:18px;margin-bottom:3px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>GYM LOG</h1>
+    <div class="avatar">A</div>
+  </header>
+
+  <div class="hero">
+    <span class="tag">Live Session</span>
+    <h2>PUSH DAY B</h2>
+    <div class="sub">32:14 elapsed · 6 of 18 sets</div>
+    <div class="bar"><div class="fill"></div></div>
+    <div class="btnrow">
+      <button class="btn btn-volt">Resume</button>
+      <button class="btn btn-ghost">Finish</button>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head"><h3>Current Exercise</h3></div>
+    <div class="rest">
+      <span class="t">00:47</span>
+      <button>SKIP REST</button>
+    </div>
+    <div class="ex-card">
+      <div class="ex-top">
+        <span class="ex-name">Bench Press</span>
+        <span class="ex-num">Barbell · 4×6-8</span>
+      </div>
+      <div class="set done"><span class="idx">1</span><input value="60 kg"><input value="8"><span class="chk">✓</span></div>
+      <div class="set done"><span class="idx">2</span><input value="65 kg"><input value="6"><span class="chk">✓</span></div>
+      <div class="set"><span class="idx">3</span><input value="65 kg"><input placeholder="reps"><span class="chk">＋</span></div>
+      <button class="add">+ ADD SET</button>
+    </div>
+    <div class="ex-card">
+      <div class="ex-top">
+        <span class="ex-name">Incline DB Press</span>
+        <span class="ex-num">Dumbbell · 3×10</span>
+      </div>
+      <div class="set"><span class="idx">1</span><input value="22 kg"><input value="10"><span class="chk">＋</span></div>
+    </div>
+    <div class="errbar">Sync failed for set #3 — retry when you're back online.</div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h3>Today</h3></div>
+    <div class="stats3">
+      <div class="stat"><div class="n">3</div><div class="l">Exercises</div></div>
+      <div class="stat"><div class="n">6</div><div class="l">Sets</div></div>
+      <div class="stat"><div class="n">4.8K</div><div class="l">Volume KG</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h3>History</h3><a href="#">See all</a></div>
+    <div class="hist">
+      <div><div class="name">Pull Day A</div><div class="meta">Fri · 48 min</div></div>
+      <span class="tagpr">NEW PR</span>
+    </div>
+    <div class="hist">
+      <div><div class="name">Leg Day</div><div class="meta">Wed · 55 min</div></div>
+      <span class="tagvol">+320 VOL</span>
+    </div>
+    <div class="hist">
+      <div><div class="name">Push Day A</div><div class="meta">Mon · 41 min</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h3>Up Next</h3></div>
+    <div class="empty">No routine scheduled for tomorrow yet.</div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:10px;">Browse Routines</button>
+  </section>
+</div>
+
+<nav class="tabbar">
+  <a href="#" class="active"><span class="ic">■</span>Home</a>
+  <a href="#"><span class="ic">▲</span>Log</a>
+  <a href="#"><span class="ic">●</span>History</a>
+  <a href="#"><span class="ic">◆</span>Settings</a>
+</nav>
+</body>
+</html>

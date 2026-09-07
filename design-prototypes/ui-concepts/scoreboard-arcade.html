@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scoreboard Arcade — Gym Log</title>
+<style>
+  :root{
+    --bg:#0e0621; --panel:#170b34; --line:#3a2166;
+    --ink:#f2eaff; --ink-dim:#9885c9;
+    --pink:#ff3f8e; --cyan:#3ef6e0; --yellow:#ffd23f; --lime:#a6ff3f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);
+    background-image:radial-gradient(circle at 20% 0%,#2a1256 0%,transparent 55%),
+                      radial-gradient(circle at 100% 30%,#1a2a5c 0%,transparent 50%);
+    color:var(--ink);font-family:'Trebuchet MS','Segoe UI',sans-serif;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:104px;}
+  header{padding:20px 18px 14px;display:flex;justify-content:space-between;align-items:center;}
+  header h1{font-size:16px;margin:0;letter-spacing:.1em;text-transform:uppercase;
+    background:linear-gradient(90deg,var(--pink),var(--cyan));-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;font-weight:900;}
+  header .date{font-size:12px;color:var(--ink-dim);}
+  .hero{margin:0 18px 16px;padding:20px;border-radius:18px;
+    background:var(--panel);border:2px solid var(--line);position:relative;overflow:hidden;}
+  .hero::after{content:"";position:absolute;inset:0;border-radius:18px;padding:2px;
+    background:linear-gradient(135deg,var(--pink),var(--cyan));-webkit-mask:
+    linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;opacity:.6;pointer-events:none;}
+  .hero .label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);
+    font-weight:700;margin-bottom:8px;}
+  .hero .big{font-size:40px;font-weight:900;font-variant-numeric:tabular-nums;
+    text-shadow:0 0 18px rgba(62,246,224,.4);}
+  .hero .sub{font-size:13px;color:var(--ink-dim);margin-top:6px;}
+  .btn{display:block;width:100%;border:none;padding:16px;font:inherit;font-weight:800;
+    letter-spacing:.04em;text-transform:uppercase;font-size:14px;cursor:pointer;border-radius:14px;
+    background:linear-gradient(90deg,var(--pink),#ff7bb0);color:#1a0a2e;}
+  .btn.secondary{background:var(--panel);border:2px solid var(--line);color:var(--ink);}
+  section{margin:0 18px 16px;padding:18px;border-radius:18px;background:var(--panel);
+    border:1.5px solid var(--line);}
+  section h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink-dim);margin:0 0 12px;font-weight:700;}
+  .set-line{display:grid;grid-template-columns:26px 1fr 1fr 40px;gap:8px;
+    align-items:center;padding:7px 0;}
+  .set-line .idx{color:var(--ink-dim);font-size:12px;font-weight:700;}
+  .set-line input{background:var(--bg);border:1.5px solid var(--line);border-radius:10px;
+    color:var(--ink);font:inherit;padding:8px;text-align:center;width:100%;font-size:13.5px;
+    font-variant-numeric:tabular-nums;font-weight:700;}
+  .set-line .check{width:30px;height:30px;border-radius:8px;border:1.5px solid var(--line);
+    display:flex;align-items:center;justify-content:center;color:var(--ink-dim);}
+  .set-line.done .check{background:var(--lime);border-color:var(--lime);color:#0e0621;}
+  .set-line.done input{border-color:var(--lime);color:var(--lime);}
+  .add-set{margin-top:8px;font-size:12px;color:var(--cyan);background:none;
+    border:1.5px dashed var(--cyan);border-radius:10px;padding:9px;width:100%;font:inherit;
+    font-weight:700;cursor:pointer;}
+  .exercise{margin-bottom:14px;}
+  .exercise .ex-name{font-size:14.5px;font-weight:800;margin-bottom:8px;color:var(--yellow);}
+  .streak{display:flex;gap:8px;margin-bottom:2px;}
+  .streak .p{flex:1;height:6px;border-radius:4px;background:var(--line);}
+  .streak .p.on{background:linear-gradient(90deg,var(--pink),var(--cyan));}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;
+    border-top:1px solid var(--line);}
+  .row:first-of-type{border-top:none;}
+  .row .name{font-size:14px;font-weight:700;}
+  .row .meta{font-size:11.5px;color:var(--ink-dim);margin-top:2px;}
+  .badge{font-size:10px;padding:4px 9px;border-radius:999px;font-weight:800;
+    letter-spacing:.04em;text-transform:uppercase;background:linear-gradient(90deg,var(--yellow),#ffb23f);
+    color:#3a2500;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .stat{background:var(--bg);border-radius:12px;padding:14px 6px;text-align:center;
+    border:1px solid var(--line);}
+  .stat .n{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--cyan);}
+  .stat .l{font-size:9.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
+  .empty{text-align:center;padding:16px 8px;color:var(--ink-dim);font-size:13px;}
+  .error{background:#3a0f2a;border:1.5px solid var(--pink);color:#ffb3d6;
+    padding:10px 12px;font-size:12px;margin-top:10px;border-radius:10px;font-weight:700;}
+  nav.tabbar{position:fixed;bottom:12px;left:14px;right:14px;max-width:452px;margin:0 auto;
+    display:flex;background:var(--panel);border:2px solid var(--line);border-radius:20px;padding:6px;}
+  nav.tabbar a{flex:1;text-align:center;padding:9px 0;color:var(--ink-dim);
+    text-decoration:none;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-radius:14px;}
+  nav.tabbar a.active{color:#0e0621;background:linear-gradient(90deg,var(--pink),var(--cyan));font-weight:800;}
+  nav.tabbar a .ic{display:block;font-size:17px;margin-bottom:3px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Gym Log</h1>
+    <span class="date">Sun 09.07</span>
+  </header>
+
+  <div class="hero">
+    <div class="label">▶ Live — Push Day B</div>
+    <div class="big">32:14</div>
+    <div class="sub">6 sets logged · 3 exercises in play</div>
+  </div>
+
+  <section>
+    <div class="exercise">
+      <div class="ex-name">Bench Press (Barbell)</div>
+      <div class="streak"><div class="p on"></div><div class="p on"></div><div class="p"></div><div class="p"></div></div>
+      <div class="set-line done"><span class="idx">1</span><input value="60 kg"><input value="8 reps"><span class="check">✓</span></div>
+      <div class="set-line done"><span class="idx">2</span><input value="65 kg"><input value="6 reps"><span class="check">✓</span></div>
+      <div class="set-line"><span class="idx">3</span><input value="65 kg"><input placeholder="reps"><span class="check">○</span></div>
+      <button class="add-set">+ Add Set</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Up Next</h2>
+    <div class="exercise">
+      <div class="ex-name">Incline Dumbbell Press</div>
+      <div class="set-line"><span class="idx">1</span><input value="22 kg"><input value="10 reps"><span class="check">○</span></div>
+      <div class="set-line"><span class="idx">2</span><input value="22 kg"><input placeholder="reps"><span class="check">○</span></div>
+    </div>
+    <div class="exercise">
+      <div class="ex-name">Cable Fly</div>
+      <div class="set-line"><span class="idx">1</span><input value="15 kg"><input value="12 reps"><span class="check">○</span></div>
+    </div>
+    <div class="error">⚠ Connection dropped — last set didn't reach wger yet.</div>
+  </section>
+
+  <section>
+    <h2>Today's Score</h2>
+    <div class="stat-grid">
+      <div class="stat"><div class="n">3</div><div class="l">Exercises</div></div>
+      <div class="stat"><div class="n">6</div><div class="l">Sets Done</div></div>
+      <div class="stat"><div class="n">4,820</div><div class="l">Volume kg</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Leaderboard — Recent</h2>
+    <div class="row"><div><div class="name">Pull Day — A</div><div class="meta">Fri · 48 min · 5 exercises</div></div><span class="badge">★ PR</span></div>
+    <div class="row"><div><div class="name">Leg Day</div><div class="meta">Wed · 55 min · 6 exercises</div></div></div>
+    <div class="row"><div><div class="name">Push Day — A</div><div class="meta">Mon · 41 min · 4 exercises</div></div></div>
+  </section>
+
+  <section>
+    <h2>Tomorrow</h2>
+    <div class="empty">No level queued yet — pick a routine to load in.</div>
+    <button class="btn secondary" style="margin-top:12px">Browse Routines</button>
+  </section>
+
+  <div style="padding:0 18px"><button class="btn">🏁 Finish Workout</button></div>
+</div>
+
+<nav class="tabbar">
+  <a href="#" class="active"><span class="ic">🏠</span>Home</a>
+  <a href="#"><span class="ic">⚡</span>Log</a>
+  <a href="#"><span class="ic">🏆</span>History</a>
+  <a href="#"><span class="ic">⚙</span>Settings</a>
+</nav>
+</body>
+</html>

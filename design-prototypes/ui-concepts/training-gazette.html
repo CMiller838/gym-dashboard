@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Training Gazette — Gym Log</title>
+<style>
+  :root{
+    --paper:#f2ece0; --ink:#221f1a; --ink-dim:#7a7267;
+    --rule:#c9bfa8; --red:#a3271f; --gold:#a9832e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:Georgia,'Times New Roman',serif;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:96px;}
+  .masthead{padding:18px 18px 12px;text-align:center;border-bottom:3px double var(--ink);}
+  .masthead .kicker{font-family:Arial,sans-serif;font-size:10px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--ink-dim);margin-bottom:4px;}
+  .masthead h1{font-size:30px;margin:0;font-weight:400;letter-spacing:.02em;}
+  .masthead .dateline{font-family:Arial,sans-serif;font-size:11px;color:var(--ink-dim);
+    margin-top:6px;letter-spacing:.05em;text-transform:uppercase;}
+  .headline{padding:20px 18px 14px;border-bottom:1px solid var(--rule);}
+  .headline .eyebrow{font-family:Arial,sans-serif;font-size:11px;color:var(--red);
+    text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:6px;}
+  .headline h2{font-size:26px;margin:0 0 6px;line-height:1.15;font-weight:400;}
+  .headline .dek{font-size:14px;color:var(--ink-dim);font-style:italic;}
+  .btn{display:block;width:100%;background:var(--ink);color:var(--paper);border:none;
+    padding:14px;font-family:Arial,sans-serif;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;font-size:12.5px;cursor:pointer;}
+  .btn.outline{background:transparent;color:var(--ink);border:1.5px solid var(--ink);}
+  section{padding:18px;border-bottom:1px solid var(--rule);}
+  section h3{font-family:Arial,sans-serif;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-dim);margin:0 0 12px;border-bottom:1px solid var(--rule);
+    padding-bottom:8px;}
+  .exercise{margin-bottom:16px;}
+  .exercise .ex-name{font-size:17px;font-weight:700;margin-bottom:8px;
+    border-left:3px solid var(--red);padding-left:8px;}
+  .set-line{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:10px;
+    align-items:center;padding:6px 0;font-family:Arial,sans-serif;font-size:13.5px;}
+  .set-line .idx{font-style:italic;color:var(--ink-dim);width:16px;}
+  .set-line input{background:transparent;border:none;border-bottom:1px solid var(--rule);
+    color:var(--ink);font:inherit;padding:4px 0;text-align:center;width:100%;}
+  .set-line .check{font-size:15px;color:var(--ink-dim);}
+  .set-line.done .check{color:var(--gold);}
+  .set-line.done input{color:var(--gold);border-color:var(--gold);}
+  .add-set{margin-top:6px;font-family:Arial,sans-serif;font-size:11.5px;color:var(--red);
+    background:none;border:none;padding:6px 0;letter-spacing:.05em;text-transform:uppercase;
+    cursor:pointer;text-decoration:underline;}
+  .byline-row{display:flex;justify-content:space-between;align-items:baseline;
+    padding:12px 0;border-top:1px solid var(--rule);}
+  .byline-row:first-of-type{border-top:none;}
+  .byline-row .name{font-size:16px;}
+  .byline-row .meta{font-family:Arial,sans-serif;font-size:11.5px;color:var(--ink-dim);margin-top:2px;}
+  .stamp{font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:.06em;
+    padding:3px 7px;border:1.5px solid var(--red);color:var(--red);text-transform:uppercase;
+    transform:rotate(-3deg);display:inline-block;}
+  .stat-strip{display:flex;justify-content:space-between;font-family:Arial,sans-serif;
+    border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:12px 0;}
+  .stat-strip div{text-align:center;flex:1;}
+  .stat-strip .n{font-size:22px;font-weight:700;}
+  .stat-strip .l{font-size:9.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em;}
+  .correction{font-family:Arial,sans-serif;font-size:12px;background:#eadfc9;
+    border-left:3px solid var(--red);padding:10px 12px;margin-top:10px;color:#5c3a2e;}
+  .empty{font-family:Arial,sans-serif;text-align:center;padding:20px 10px;color:var(--ink-dim);
+    font-size:13px;font-style:italic;}
+  nav.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;
+    display:flex;background:var(--paper);border-top:3px double var(--ink);
+    font-family:Arial,sans-serif;}
+  nav.tabbar a{flex:1;text-align:center;padding:12px 0 10px;color:var(--ink-dim);
+    text-decoration:none;font-size:10px;text-transform:uppercase;letter-spacing:.06em;}
+  nav.tabbar a.active{color:var(--red);font-weight:700;}
+  nav.tabbar a .ic{display:block;font-size:16px;margin-bottom:3px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="masthead">
+    <div class="kicker">Vol. 4 · Late Edition</div>
+    <h1>The Training Gazette</h1>
+    <div class="dateline">Sunday, September 7</div>
+  </div>
+
+  <div class="headline">
+    <div class="eyebrow">Session In Progress</div>
+    <h2>Push Day B enters its 32nd minute</h2>
+    <div class="dek">Six sets filed across three exercises; bench press leads the report.</div>
+  </div>
+
+  <section>
+    <h3>Bench Press (Barbell)</h3>
+    <div class="exercise">
+      <div class="set-line done"><span class="idx">i</span><input value="60 kg"><input value="8 reps"><span class="check">✓</span></div>
+      <div class="set-line done"><span class="idx">ii</span><input value="65 kg"><input value="6 reps"><span class="check">✓</span></div>
+      <div class="set-line"><span class="idx">iii</span><input value="65 kg"><input placeholder="reps"><span class="check">○</span></div>
+      <button class="add-set">File another set</button>
+    </div>
+  </section>
+
+  <section>
+    <h3>Also Reported</h3>
+    <div class="exercise">
+      <div class="ex-name">Incline Dumbbell Press</div>
+      <div class="set-line"><span class="idx">i</span><input value="22 kg"><input value="10 reps"><span class="check">○</span></div>
+      <div class="set-line"><span class="idx">ii</span><input value="22 kg"><input placeholder="reps"><span class="check">○</span></div>
+    </div>
+    <div class="exercise">
+      <div class="ex-name">Cable Fly</div>
+      <div class="set-line"><span class="idx">i</span><input value="15 kg"><input value="12 reps"><span class="check">○</span></div>
+    </div>
+    <div class="correction">Correction: the last set failed to reach wger's servers. We'll retry the filing shortly.</div>
+  </section>
+
+  <section>
+    <h3>By The Numbers</h3>
+    <div class="stat-strip">
+      <div><div class="n">3</div><div class="l">Exercises</div></div>
+      <div><div class="n">6</div><div class="l">Sets</div></div>
+      <div><div class="n">4,820</div><div class="l">Kg Volume</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Previously Filed</h3>
+    <div class="byline-row"><div><div class="name">Pull Day — A</div><div class="meta">Friday · 48 min · 5 exercises</div></div><span class="stamp">Record</span></div>
+    <div class="byline-row"><div><div class="name">Leg Day</div><div class="meta">Wednesday · 55 min · 6 exercises</div></div></div>
+    <div class="byline-row"><div><div class="name">Push Day — A</div><div class="meta">Monday · 41 min · 4 exercises</div></div></div>
+  </section>
+
+  <section>
+    <h3>Tomorrow's Edition</h3>
+    <div class="empty">No bout scheduled yet — the desk awaits your assignment.</div>
+    <button class="btn outline" style="margin-top:12px">Browse Routines</button>
+  </section>
+
+  <div style="padding:18px"><button class="btn">Send To Press — Finish Workout</button></div>
+</div>
+
+<nav class="tabbar">
+  <a href="#" class="active"><span class="ic">◆</span>Front Page</a>
+  <a href="#"><span class="ic">✎</span>Filing</a>
+  <a href="#"><span class="ic">🗞</span>Archive</a>
+  <a href="#"><span class="ic">⚭</span>Desk</a>
+</nav>
+</body>
+</html>

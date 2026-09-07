@@ -42,6 +42,15 @@
             "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/block-dangerous.sh"
           }
         ]
+      },
+      {
+        "matcher": "ListAgents|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/check-agent-resume.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
