@@ -83,7 +83,7 @@ API-derived-string invariant.
 
 ---
 
-## Phase 4 — Polished summary view
+## Phase 4 — Polished summary view (Status: logic/CSS built and self-tested; manual on-device verification outstanding, see `tasks.md`)
 
 **Goal:** Redesign the workout-completion screen with smoother transitions/animations
 and cleaner stat formatting.
@@ -100,7 +100,7 @@ and intact.
 
 ---
 
-## Phase 5 — Feedback on every touched interaction
+## Phase 5 — Feedback on every touched interaction (Status: CSS built app-wide at explicit user request, broader than the original "what v3 touches" scope below; manual on-device verification outstanding, see `tasks.md`)
 
 **Goal:** Every screen/interaction v3 actually modified — timer, set logging, summary,
 history view — gets a visible/audible response to the interaction.

@@ -339,11 +339,109 @@ Spec: `.claude/specs/phase3_spec.md`. Decision Gate 1 (graph rendering) resolved
 
 ## Phase 4 — Polished summary view (v3)
 
-- [ ] Not yet planned — run `@planner Phase 4`
+Spec: `.claude/specs/phase4_spec.md`. No Decision Gates raised — no schema/data-shape change,
+no new dependency, roadmap's stated approach followable as written.
+
+### Logic & Backend (TDD)
+
+- [x] `formatKg(n)`: new pure formatting helper — rounds to at most 1 decimal (dropping a
+      trailing `.0`), adds thousands separators, and returns `"0"` for `0`/`null`/`undefined`
+      without ever producing `"NaN"`.
+- [x] Update `renderSummary()` (`1423-1460`) call sites to use `formatKg`: `summary.totals.volume`
+      (`1432`), `r.weightPR.weight` (`1441`), `r.volumePR.volume` (`1442`). Leave
+      `summary.totals.sets`/`reps`/`durationMin` (`1433`) unformatted (already-integer counts).
+      No change to `esc()` usage, and no change to `summaryTotals`/`buildSummary`/
+      `summaryCards`'s return shapes.
+- [x] Self-test additions to `runSelfTest`: `formatKg(157.5)` → `"157.5"`, `formatKg(500)` →
+      `"500"`, `formatKg(500.04)` → `"500"`, `formatKg(12500)` includes a thousands separator,
+      `formatKg(0)`/`formatKg(null)`/`formatKg(undefined)` all → `"0"` — verified standalone
+      (full `runSelfTest` needs a DOM driver not available this session, same limitation noted
+      in Phase 2/3 notes); all 5 assertions pass.
+
+### UI & Layout (rapid prototyping)
+
+- [x] Transitions/polish applied directly as CSS (no `ui-prototyper` detour — scope was pure
+      animation/affordance polish on an already-styled, structurally-unchanged screen, not a new
+      visual direction): `.summary-card` gets a `summaryCardIn` entry keyframe that replays on
+      every `renderSummary()` call (card-to-card transition is "for free" since each call is a
+      fresh `innerHTML` replacement), `.summary-dots .dot` transitions background-color/transform
+      on the `active` toggle, `.donebtn` and the card itself get `:active` press affordance
+      (scale/brightness). No JS/class-toggle wiring needed.
+- [x] Apply the chosen direction to `index.html`: done inline above — adapted
+      `.summary-card`/`.summary-dots`/`.donebtn` CSS (`69-86`), no change to
+      `renderSummary()`/`nextSummaryCard()` JS, `formatKg` call sites, or card content logic.
+- [ ] Manual check: volume/PR/muscle-group figures are still numerically correct after the
+      restyle (spot-check against a workout with decimal weights and a large volume total).
+- [ ] Manual check: rapid repeated taps on the card/`donebtn` during a transition don't desync
+      the visible card from `summaryCard`'s actual index or double-advance past `closeSummary()`.
+
+**Phase notes:** No JS behavior changed (`nextSummaryCard`/`closeSummary` untouched), so the
+rapid-tap edge case is exactly whatever it already was pre-Phase-4 — not a new risk introduced
+by the CSS-only transition. Manual on-device checks (numeric spot-check post-restyle, rapid-tap
+behavior, and the animation actually reading well on a real screen) are **not done this
+session** — no browser/device available in this environment; confirm next time the app runs
+live and record it here.
+
+- [ ] Mark Phase 4 (v3) done in `docs/roadmap.md` and commit it with the code (per
+  `.claude/rules/roadmap-gating.md`) once the manual checks above pass.
 
 ## Phase 5 — Feedback on every touched interaction (v3)
 
-- [ ] Not yet planned — run `@planner Phase 5`
+Built directly at the user's explicit request ("animations and visual feedback on every
+button and interactable"), skipping `@planner Phase 5` — scope is app-wide (every
+tappable control), broader than the roadmap's original "what v3 touches" framing, and
+was a straightforward CSS-only pass with no schema/logic decisions to gate.
+
+### CSS (no JS/logic change)
+
+- [x] Inventoried every clickable control in `index.html`: all `<button>` elements
+      (`addexbtn`/`addsetbtn`/`backbtn`/`delbtn`/`discardbtn`/`donebtn`/`logbtn`/
+      `movebtn`/`removeexbtn`/`reset`/`resumebtn`/`startbtn`/`cancel`, plus unclassed
+      buttons like Refresh/Change token/Connect/Skip/Finish Workout), and non-button
+      interactive divs (`.tab`, `.wex-name`, `.opt` day-picker/search rows,
+      `.summary-card`). Confirmed `.session-card`/`.routine-card`/`.pr-card`/`.exrow`
+      are display-only (no `onclick`) — deliberately left untouched, not "everything
+      moves."
+- [x] Added one global press rule keyed off the `button` element (covers ~13 classes
+      for free — reuse over one-off rules per class) plus `.tab`: `transform:scale(.96)`
+      + `filter:brightness(.9)` on `:active`, excluded via `:not(:disabled)` so
+      `.movebtn:disabled` etc. stay inert.
+- [x] `.opt` (day-picker + add-exercise search rows) gets a background-dim press state
+      instead of scale — full-width list rows read better with a fill change than a
+      centered scale.
+- [x] `.wex-name` (inline exercise-name text, opens the trend/detail view) gets an
+      opacity dim on press instead of scale/background — it's inline text, not a chip.
+- [x] Added `:focus-visible` outline (accent color) on all of the above plus `input` —
+      accessibility floor, nothing set `outline:none` before so keyboard focus already
+      worked, this just makes it visible and on-brand instead of the browser default.
+- [x] Added `.overlay`/`.overlay-sheet` entrance animation (fade + slide-up) — the
+      day-picker, add-exercise, and exercise-detail bottom sheets had no entry motion
+      before.
+- [x] Added a `prefers-reduced-motion: reduce` block collapsing all animation/transition
+      durations app-wide (covers this pass's additions and Phase 4's summary
+      animations) — one rule, not hunted per-animation.
+- [x] Removed the now-redundant `.summary-card .donebtn:active` rule from Phase 4 — the
+      new global `button:active` rule covers it with identical values.
+- [x] Verified: `<style>` brace-balanced (137/137), `<script>` still parses via
+      `new Function()`.
+
+### Manual verification against a real device
+
+- [ ] Every button in the app (toolbar, setup, active workout, overlays, summary,
+      finish bar) visibly depresses on tap, including on real touch hardware (not just
+      mouse `:active` in a desktop browser)
+- [ ] Day-picker and add-exercise search rows dim on tap without feeling laggy
+- [ ] Bottom-sheet overlays visibly slide up on open (day picker, add exercise,
+      exercise detail)
+- [ ] iOS "Reduce Motion" (or equivalent OS setting) actually flattens the animations
+      — not verified against real OS-level `prefers-reduced-motion`, only the CSS media
+      query syntax
+- [ ] No layout jank from `.opt`/`.wex-name` losing their previous (nonexistent)
+      transition when rapidly toggled
+
+**Phase notes:** No browser/device available in this session (same limitation as prior
+phases) — all of the above is unverified beyond static syntax checks. Confirm on a real
+phone next time the app runs live and record it here.
 
 ## Phase 6 — Nice-to-haves: stalled-workout auto-complete, routine reordering (v3)
 

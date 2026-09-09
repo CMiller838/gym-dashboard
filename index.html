@@ -67,7 +67,10 @@
   .pr-card .prdate{color:var(--muted); font-size:11px;}
 
   .summary-card{display:flex; flex-direction:column; justify-content:center; align-items:center;
-    text-align:center; min-height:60vh; padding:20px;}
+    text-align:center; min-height:60vh; padding:20px; cursor:pointer;
+    animation:summaryCardIn .32s cubic-bezier(.2,.7,.3,1);}
+  .summary-card:active{filter:brightness(.97);}
+  @keyframes summaryCardIn{from{opacity:0; transform:translateY(10px) scale(.98);} to{opacity:1; transform:none;}}
   .summary-hero{font-size:40px; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums;}
   .summary-sub{color:var(--muted); font-size:14px; margin-top:6px;}
   .summary-card .pr-card, .summary-card .muscle-row{width:100%; max-width:340px; text-align:left;}
@@ -75,8 +78,9 @@
     padding:12px 14px; margin-bottom:10px; display:flex; justify-content:space-between;
     font-size:14px; font-weight:600;}
   .summary-dots{display:flex; gap:8px; margin:16px 0;}
-  .summary-dots .dot{width:8px; height:8px; border-radius:50%; background:var(--border);}
-  .summary-dots .dot.active{background:var(--accent);}
+  .summary-dots .dot{width:8px; height:8px; border-radius:50%; background:var(--border);
+    transition:background-color .25s, transform .25s;}
+  .summary-dots .dot.active{background:var(--accent); transform:scale(1.35);}
   .pr-badge{font-size:11px; font-weight:700; color:var(--gold); border:1.5px solid var(--gold);
     border-radius:8px; padding:2px 8px; margin-left:6px; white-space:nowrap; text-transform:uppercase; letter-spacing:.03em;}
   .summary-card .donebtn{background:var(--accent); color:#08131f; border:none; border-radius:10px;
@@ -208,6 +212,25 @@
     transition:top 0.45s cubic-bezier(.34,1.56,.64,1); white-space:nowrap; text-align:center; text-transform:uppercase; letter-spacing:.03em;}
   .pr-toast.show{ top:18px; }
   .pr-toast .prsub{display:block; font-size:11px; font-weight:600; opacity:0.85; margin-top:2px; text-transform:none; letter-spacing:0;}
+
+  /* --- Interaction feedback: every tappable control gets a press response --- */
+  button:not(:disabled), .tab{transition:transform .12s ease, filter .12s ease; cursor:pointer;}
+  button:not(:disabled):active, .tab:active{transform:scale(.96); filter:brightness(.9);}
+  .overlay-sheet .opt{transition:background-color .12s ease;}
+  .overlay-sheet .opt:active{background:var(--border);}
+  .wex-name{transition:opacity .12s ease;}
+  .wex-name:active{opacity:.6;}
+  button:focus-visible, .tab:focus-visible, .opt:focus-visible, .wex-name:focus-visible,
+  input:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  @keyframes overlayFadeIn{from{opacity:0} to{opacity:1}}
+  @keyframes sheetSlideUp{from{transform:translateY(24px); opacity:0} to{transform:none; opacity:1}}
+  .overlay{animation:overlayFadeIn .18s ease;}
+  .overlay-sheet{animation:sheetSlideUp .22s cubic-bezier(.2,.7,.3,1);}
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
+  }
 </style>
 </head>
 <body>
@@ -413,6 +436,10 @@ function esc(s){
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+function formatKg(n){
+  if(n === null || n === undefined || isNaN(n)) return "0";
+  return n.toLocaleString(undefined, {maximumFractionDigits:1});
 }
 function fmtDate(d){
   const dt = new Date(d);
@@ -1429,7 +1456,7 @@ function renderSummary(){
 
   let body = "";
   if(card === "volume"){
-    body = `<div class="summary-hero">${summary.totals.volume}kg</div>
+    body = `<div class="summary-hero">${formatKg(summary.totals.volume)}kg</div>
       <div class="summary-sub">${summary.totals.sets} sets · ${summary.totals.reps} reps · ${summary.durationMin} min</div>`;
   } else if(card === "prs"){
     if(!summary.prs.length){
@@ -1438,8 +1465,8 @@ function renderSummary(){
       body = summary.prs.map(r => {
         let badges = "";
         let figures = "";
-        if(r.weightPR){ badges += `<span class="pr-badge">Weight PR</span>`; figures += `${r.weightPR.weight}kg × ${r.weightPR.reps}`; }
-        if(r.volumePR){ badges += `<span class="pr-badge">Volume PR</span>`; figures += (figures?" · ":"") + `${r.volumePR.volume}kg vol`; }
+        if(r.weightPR){ badges += `<span class="pr-badge">Weight PR</span>`; figures += `${formatKg(r.weightPR.weight)}kg × ${r.weightPR.reps}`; }
+        if(r.volumePR){ badges += `<span class="pr-badge">Volume PR</span>`; figures += (figures?" · ":"") + `${formatKg(r.volumePR.volume)}kg vol`; }
         return `<div class="pr-card">
           <div><div class="exname">${esc(r.name)}${badges}</div><div class="prdate">${figures}</div></div>
         </div>`;
@@ -1681,6 +1708,12 @@ function runSelfTest(){
     }
     assert(buildTrendPoints(9, manyLogs).length === 20, "buildTrendPoints: capped to most recent 20 days");
   }
+
+  assert(formatKg(157.5) === "157.5", "formatKg: keeps one decimal");
+  assert(formatKg(500) === "500", "formatKg: integer, no trailing decimal");
+  assert(formatKg(500.04) === "500", "formatKg: rounds to at most 1 decimal");
+  assert(formatKg(12500).includes(","), "formatKg: thousands separator");
+  assert(formatKg(0) === "0" && formatKg(null) === "0" && formatKg(undefined) === "0", "formatKg: 0/null/undefined -> \"0\"");
 
   console.log(`selftest: ${checks} checks, ${failed} failed`);
 }
