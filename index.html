@@ -223,23 +223,49 @@
   button:focus-visible, .tab:focus-visible, .opt:focus-visible, .wex-name:focus-visible,
   input:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
 
+  /* Spring-flavored entrance easing, reused everywhere something appears — a touch of
+     overshoot reads as "alive" where a flat ease-out reads as inert. Presses stay
+     linear/ease (a tap shouldn't overshoot, only an arrival should). */
   @keyframes overlayFadeIn{from{opacity:0} to{opacity:1}}
   @keyframes sheetSlideUp{from{transform:translateY(28px); opacity:0} to{transform:none; opacity:1}}
   .overlay{animation:overlayFadeIn .2s ease;}
-  .overlay-sheet{animation:sheetSlideUp .26s cubic-bezier(.2,.7,.3,1);}
+  .overlay-sheet{animation:sheetSlideUp .3s cubic-bezier(.34,1.56,.64,1);}
 
   /* Tab-screen swap (History/PRs/Routines only — `section` is never used by the
      active-workout screen, which re-renders on every set log and must stay animation-free) */
   @keyframes sectionIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
-  section{animation:sectionIn .22s ease;}
+  section{animation:sectionIn .26s cubic-bezier(.34,1.56,.64,1);}
 
   /* Stat tiles settle in on each tab render, staggered a touch so the row doesn't feel
      like one flat block appearing (list cards inside `section` already inherit its
      entry animation, so they're not repeated here) */
-  .stat{animation:sectionIn .22s ease backwards;}
+  .stat{animation:sectionIn .26s cubic-bezier(.34,1.56,.64,1) backwards;}
   .stats-row .stat:nth-child(1){animation-delay:0s}
   .stats-row .stat:nth-child(2){animation-delay:.03s}
   .stats-row .stat:nth-child(3){animation-delay:.06s}
+
+  /* The active tab pill pops instead of just changing color, since the tab bar is
+     rebuilt wholesale on every render (a CSS transition on .active never gets to
+     fire — old element gone, new one born already active) */
+  @keyframes tabPop{0%{transform:scale(.88);} 60%{transform:scale(1.05);} 100%{transform:scale(1);}}
+  .tab.active{animation:tabPop .24s cubic-bezier(.34,1.56,.64,1);}
+
+  /* --- Active-workout list: the app's single most frequent interaction (logging a
+     set) gets its own confirmation motion instead of the wholesale screen-swap
+     treatment above — a quick settle-in for the list, plus a one-shot highlight flash
+     for whichever row/card just flipped to done. Same "recreated DOM" constraint as
+     the tab pill applies: these run as `animation`, not `transition`. */
+  @keyframes cardIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  @keyframes rowIn{from{opacity:0;} to{opacity:1;}}
+  @keyframes rowLoggedFlash{from{background-color:rgba(79,176,255,.35);} to{background-color:transparent;}}
+  @keyframes cardDonePulse{from{box-shadow:0 0 0 0 rgba(79,176,255,.45);} to{box-shadow:0 0 0 8px rgba(79,176,255,0);}}
+  .wex-card{animation:cardIn .2s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .wex-card:nth-child(1){animation-delay:0s} .wex-card:nth-child(2){animation-delay:.02s}
+  .wex-card:nth-child(3){animation-delay:.04s} .wex-card:nth-child(4){animation-delay:.06s}
+  .wex-card:nth-child(5){animation-delay:.08s}
+  .wex-card.done{animation:cardIn .2s cubic-bezier(.34,1.56,.64,1) backwards, cardDonePulse .6s ease-out;}
+  .setrow{animation:rowIn .16s ease;}
+  .setrow.logged{animation:rowIn .16s ease, rowLoggedFlash .6s ease-out;}
 
   @media (prefers-reduced-motion: reduce){
     *, *::before, *::after{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}

@@ -453,6 +453,23 @@ platform workaround, not a library). Also strengthened press feedback for percep
 **not** applied to the active-workout screen (`renderActiveWorkout` never uses `<section>`,
 by design), since that re-renders on every set log/timer tick and would over-animate.
 
+**Follow-up 2 (same session):** device is a Pixel 10a (Chrome/Android, not iOS) — the
+`:active` tap workaround above doesn't apply there, and it wasn't the cause for this user;
+after confirming a fresh load, feedback was "still feels a bit flat and unlively." Root
+cause: `renderActiveWorkout()` and `tabsHtml()`/tab-screen renders replace their DOM
+wholesale on every call, so several CSS `transition` rules that looked correct on paper
+(`.wex-card{transition:border-color .2s}`, an implicit `.tab.active` color swap) could
+never actually fire — old element destroyed, new one born already in its final state.
+Switched those to one-shot `animation`s instead (which do fire on a freshly created
+element), and gave the app's single most frequent interaction — logging a set — its own
+confirmation motion for the first time: `.setrow.logged` gets a brief accent-color flash,
+`.wex-card.done` gets a pulse ring, both list types get a quick settle-in on render. Also
+swapped entrance easing (sheet, section, stat stagger) from flat `ease`/`ease-out` to a
+`cubic-bezier(.34,1.56,.64,1)` overshoot curve (already used for the PR toast) for a
+livelier arrival, and gave the active tab pill a pop instead of an inert instant color
+change. Press feedback (:active) intentionally stays snappy/non-bouncy — only arrivals
+get the spring, per the "one thing overshoots" restraint principle.
+
 ## Phase 6 — Nice-to-haves: stalled-workout auto-complete, routine reordering (v3)
 
 - [ ] Not yet planned — run `@planner Phase 6`
