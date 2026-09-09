@@ -223,6 +223,12 @@
   button:focus-visible, .tab:focus-visible, .opt:focus-visible, .wex-name:focus-visible,
   input:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
 
+  /* Text inputs get a real focus glow on plain tap too, not just keyboard focus-visible —
+     the app is mobile-first, so most focus events are touch, not Tab */
+  input[type="text"], input[type="password"], input[type="number"]{transition:border-color .15s ease, box-shadow .15s ease;}
+  input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:not(:disabled):focus{
+    border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,176,255,.18); outline:none;}
+
   /* Spring-flavored entrance easing, reused everywhere something appears — a touch of
      overshoot reads as "alive" where a flat ease-out reads as inert. Presses stay
      linear/ease (a tap shouldn't overshoot, only an arrival should). */
@@ -266,6 +272,23 @@
   .wex-card.done{animation:cardIn .2s cubic-bezier(.34,1.56,.64,1) backwards, cardDonePulse .6s ease-out;}
   .setrow{animation:rowIn .16s ease;}
   .setrow.logged{animation:rowIn .16s ease, rowLoggedFlash .6s ease-out;}
+
+  /* Remaining static moments: the setup/connect screen, and empty/loading states that
+     every tab shows at least once while data fetches — previously a flat instant swap
+     with no indication anything was happening */
+  .setup, .empty{animation:sectionIn .26s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes loadingPulse{0%,100%{opacity:.45} 50%{opacity:1}}
+  .loading{animation:loadingPulse 1.3s ease-in-out infinite;}
+
+  /* Summary screen: PR rows and muscle rows settle in with the same stagger as the
+     stat tiles, instead of the whole list appearing as one flat block the instant the
+     card fades in. Scoped to `.summary-card` so the PR tab's own `.pr-card` list
+     (already inside an animated `section`) doesn't get a second, redundant animation. */
+  .summary-card .pr-card, .summary-card .muscle-row{animation:cardIn .22s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .summary-card .pr-card:nth-child(1), .summary-card .muscle-row:nth-child(1){animation-delay:.05s}
+  .summary-card .pr-card:nth-child(2), .summary-card .muscle-row:nth-child(2){animation-delay:.09s}
+  .summary-card .pr-card:nth-child(3), .summary-card .muscle-row:nth-child(3){animation-delay:.13s}
+  .summary-card .pr-card:nth-child(4), .summary-card .muscle-row:nth-child(4){animation-delay:.17s}
 
   @media (prefers-reduced-motion: reduce){
     *, *::before, *::after{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
