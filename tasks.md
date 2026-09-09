@@ -443,6 +443,16 @@ was a straightforward CSS-only pass with no schema/logic decisions to gate.
 phases) — all of the above is unverified beyond static syntax checks. Confirm on a real
 phone next time the app runs live and record it here.
 
+**Follow-up (same session):** user reported seeing no animations live on-device after the
+first push. Root-caused: iOS Safari doesn't apply `:active` styles on a tap unless some
+touch listener is bound on the page, so every press-state rule in the CSS above was
+silently inert on iPhone — fixed with a one-line no-op `touchstart` listener (standard
+platform workaround, not a library). Also strengthened press feedback for perceptibility
+(scale `.96`→`.94`, `.12s`→`.16s`, sheet slide distance `24px`→`28px`) and added a
+`sectionIn` fade/rise entry animation scoped to `<section>` and `.stat` — deliberately
+**not** applied to the active-workout screen (`renderActiveWorkout` never uses `<section>`,
+by design), since that re-renders on every set log/timer tick and would over-animate.
+
 ## Phase 6 — Nice-to-haves: stalled-workout auto-complete, routine reordering (v3)
 
 - [ ] Not yet planned — run `@planner Phase 6`
