@@ -1,13 +1,17 @@
 # Roadmap
 
-Sequenced from the `idea-interview` must-have list (2026-09). One parked idea —
-per-exercise how-to-do-it animation — is in `docs/FUTURE.md` and is not part of this
-roadmap.
+v3 — sequenced from `docs/outline-v3.md` (2026-09). v2's roadmap is complete and
+archived at `.claude/archive/roadmap-v2.md`. Non-goals from the outline (how-to-do-it
+video content, server-push notifications, multi-user) are out of scope for this
+roadmap entirely.
 
-Phases are ordered by real dependency, not by size: the date/time bugs come first
-because two later phases read the same ordering code, and the UI pass comes last so
-the restyle sees the finished markup (the bottom resume bar and the summary screens
-included) rather than being applied twice.
+Phases are ordered by real dependency, not by size: the data-integrity bug fixes come
+first because a later phase (the summary redesign) displays the exact PR figures they
+correct; timer reliability and the audio overhaul are bundled because firing a rest-timer
+alert "audibly" *is* the audio work; and the cross-cutting interaction-feedback pass
+runs last, once every screen it touches (timer, set logging, summary, history view) is
+in its final v3 shape — mirroring v2's "restyle last" rationale so nothing gets
+polished twice.
 
 Per `.claude/rules/roadmap-gating.md`, a phase is marked `— done` in the same commit
 as the code that finished it. Detailed specs are written per phase by
@@ -15,120 +19,132 @@ as the code that finished it. Detailed specs are written per phase by
 
 ---
 
-## Phase 1 — Date and time correctness
+## Phase 1 — Data integrity: last-time baseline and PR tracking
 
-**Goal:** Find and fix the real root causes behind the wrong elapsed-time display and
-the wrong history date/sort, and confirm the existing "last time" lookup is correct
-once ordering is trustworthy.
+**Goal:** Fix the two "the app shows/records the wrong thing" bugs before anything
+downstream (the summary redesign) renders the values they produce.
 
-Covers must-haves 5 (elapsed time), 7 (history sort), 1 (last-performed values).
+Covers must-haves 2 (last-time baseline overwrite) and 3 (PR = heaviest weight in any
+completed set, not just a dedicated max test).
 
-**Scope flag — unscoped until investigated.** Both bugs are reported by symptom; their
-causes are not confirmed. Two independent prime suspects, and they are *not* assumed to
-share a cause:
+Both are logic fixes to existing state/calc code — `entry.lastTime` and the
+`sessionBest` / `computeBestByExercise` path (index.html) — not new screens, so they're
+bundled as one small, low-risk phase ahead of everything that reads their output.
 
-- Elapsed time: `startedAtMs` is set to `Date.now()` in `launchDay` (index.html:729),
-  including on the path where `startWorkout` adopts an existing unfinished wger session
-  via the duplicate-session guard — so the timer may count from "reopened" rather than
-  "started", and wger's own session start field is unused.
-- History order: sessions are fetched with `ordering=-date` (index.html:438) against a
-  day-granularity `date` field, so same-day sessions tie and fall back to arbitrary
-  order.
-
-**Why must-have 1 is here, not in a feature phase:** the last-performed value is already
-implemented — `lastTimeForExercise` (index.html:630) already falls back to the most
-recent time an exercise was ever logged, `buildEntriesFromDay` populates `entry.lastTime`,
-and it renders in a Previous column. It shares the date-ordering code under suspicion, so
-this phase verifies it rather than rebuilding it. If verification shows it genuinely
-doesn't work, the remaining work stays in this phase.
-
-**Exit condition:** elapsed time is correct across a resumed/adopted session and a page
-reload; history lists in true recency order including multiple sessions on one day; the
-Previous column shows the correct prior values, including the fallback case.
+**Exit condition:** the Previous-set value shown next to an in-progress set stays pinned
+to the last *completed* session until the current set is itself completed; a PR is
+recognized from any completed set's weight, not only a dedicated max-test set.
 
 ---
 
-## Phase 2 — Active workout: keep it, get back to it, make the tap feel right
+## Phase 2 — Rest-timer reliability and audio overhaul [opus?]
 
-**Goal:** Make the in-progress workout impossible to lose track of — a persistent
-bottom bar that resumes it from anywhere — and fix the navigation dead-ends and tap
-feedback around set logging.
+**Goal:** Make rest-timer alerts impossible to miss while the app is open and in view,
+and give every timer/cue/alert a distinct, louder sound.
 
-Covers must-haves 4 (persistent bar / don't lose progress), 3 (routing back to main
-after completing or deleting a routine), 2 (sound on set completion), 6 (bigger tick
-button).
+Covers must-haves 1 (reliable rest-timer alerts) and 4 (audio overhaul).
 
-**Scope flag — smaller than reported, in one respect.** Progress is not actually being
-deleted: `clearActive()` is only called from `finishWorkout` (index.html:1137) and
-`discardWorkout` (1163, 1175), and the active workout already persists in localStorage
-with a resume banner on the main screen (417-419). So must-have 4 is an affordance
-problem, not a data-loss bug — the work is the always-visible bar and the resume
-routing, and there is already a persistent `.toolbar` element outside the re-rendered
-`content` div (196-199) for it to live alongside.
+Bundled because they're the same code path: the timer already stores an absolute
+`restEndMs` end-timestamp and polls it every second (`tickRestTimers`), but today it
+silently clears when it reaches zero — no sound fires at all. Making the alert fire
+"audibly" and adding a Wake Lock + `visibilitychange` catch-up is inseparable from
+building the distinct/louder sounds it needs to play; splitting them would mean touching
+`tickRestTimers` and the existing `beep()` helper twice.
 
-Must-haves 2 and 6 are genuinely small and ride along because they touch the same set
-row: `triggerSetFeedback` (1048) already exists with `navigator.vibrate`, so sound is a
-few lines beside it, and no new dependency is needed for it. Must-have 6 is `.logbtn`
-CSS (145-147) plus a tap-target check.
+**Scope flag — background/locked-phone case is explicitly out.** Per the outline, this
+phase covers only the tab-open-and-visible case (Wake Lock + absolute-timestamp
+self-correction + visibilitychange catch-up), not a fully backgrounded or locked phone.
+If on-device testing during this phase shows that bar isn't met, escalating to a service
+worker is a scoped `@architect` decision made at that point, not assumed here — tagged
+`[opus?]` because that potential escalation is a genuine architectural fork (this app
+has no service worker today by design), not because the lighter tier itself is complex.
 
-**Exit condition:** navigating away from an active workout leaves a tappable bar naming
-the in-progress routine that returns to the workout screen; completing or deleting a
-routine lands on the main screen; every set-completion tap plays a sound; the tick
-button meets a comfortable thumb target.
-
----
-
-## Phase 3 — Post-workout summary (Status: Complete — logic/UI built and self-tested; manual on-device verification against the live API still outstanding, see `tasks.md`)
-
-**Goal:** After finishing a workout, show a short slideshow of what was achieved —
-total weight lifted, PRs hit, muscle groups trained.
-
-Covers must-have 8.
-
-**Scope flag — the riskiest phase, and the one most likely to grow.** Only part of the
-data exists:
-
-- PRs: half-built already. `computeBestByExercise` (index.html:620) and the `sessionBest`
-  map maintained during `logSet` (1093-1097) give per-exercise bests; a session-vs-history
-  comparison for "PRs hit this session" is a small addition on top.
-- Total weight lifted: not computed anywhere today. Straightforward, but new.
-- Muscle groups: **not present in the app at all.** This needs muscle/category metadata
-  that the cached `exercise_index_v1` (`loadExerciseIndex`, index.html:322) may not
-  store, which means either a cache-schema bump plus a re-fetch, or extra
-  `/exerciseinfo/` reads at summary time. If this turns out to cost a slow extra fetch
-  on every workout finish, dropping muscle groups from the slideshow is the cheap exit —
-  that call belongs in the phase spec, not here.
-
-Depends on Phase 1 (PR/history figures are only trustworthy once date ordering is) and
-Phase 2 (the summary is the screen the finish flow routes into).
-
-**Exit condition:** finishing a workout shows the summary before returning to the main
-screen, with correct volume and PR figures; muscle groups either shown or explicitly
-dropped with the reason recorded.
+**Exit condition:** a rest timer fires a distinct, audible alert whenever the app is
+open and in view, including after being backgrounded and returning within the same
+tab session; set-completion, PR, and timer-end sounds are all distinguishable from each
+other at a higher default volume.
 
 ---
 
-## Phase 4 — UI modernization
+## Phase 3 — In-workout exercise history/trend view (Status: logic/UI built and self-tested; manual on-device verification outstanding, see `tasks.md`)
 
-**Goal:** A full visual design pass over the app via `ui-prototyper` →
-`restyle-from-prototype`, applied once the functional work is finished.
+**Goal:** Tapping an exercise name during an active routine opens a detail view with
+lifetime stats and a trend graph for that exercise.
 
-Covers must-have 9.
+Covers must-have 5.
 
-**Sequencing decision (confirmed with the user):** this phase runs last. The bottom
-resume bar (Phase 2) and the summary screens (Phase 3) are a persistent screen-agnostic
-element and a whole new screen type respectively — both need to exist in the prototypes
-before a design language is locked, otherwise they get styled ad-hoc against a system
-that never modelled them. Restyling last also means the small tweaks in Phase 2 aren't
-restyled twice. Cost of deferring is low: it's one `<style>` block (index.html:16-186)
-with `:root` tokens already at 17-21.
+Mostly additive — a new detail screen reading existing logged-set history — so it has
+no hard dependency on Phases 1–2, but is sequenced after Phase 1 so the trend data it
+displays (PR/history figures) is already correct rather than needing a second pass.
 
-**Scope flag — full design pass, not a tweak.** `restyle-from-prototype` restructures
-markup as well as styles, so every data binding, `onclick` handler and selector in the
-restyled regions has to be carried across in the same edit. The invariants in
-`CLAUDE.md` still hold through the restyle — in particular every API-derived string
-stays behind `esc()` in any new render path.
+**Exit condition:** tapping an exercise name mid-workout opens a history/trend view
+showing lifetime stats and a graph for that exercise, escaped per the app's
+API-derived-string invariant.
 
-**Exit condition:** a chosen prototype's design language is applied to the live app with
-all interactivity intact — set logging, the resume bar, the summary, tab navigation and
-the token flow all still work against the real wger API.
+---
+
+## Phase 4 — Polished summary view
+
+**Goal:** Redesign the workout-completion screen with smoother transitions/animations
+and cleaner stat formatting.
+
+Covers must-have 6.
+
+Depends on Phase 1: the summary displays PR and volume figures, which must already be
+correct before the redesign locks in how they're formatted — otherwise the formatting
+work gets redone once the underlying figures change. Independent of Phases 2 and 3.
+
+**Exit condition:** the post-workout summary screen has polished transitions and stat
+formatting, with all existing summary data (volume, PRs, muscle groups) still correct
+and intact.
+
+---
+
+## Phase 5 — Feedback on every touched interaction
+
+**Goal:** Every screen/interaction v3 actually modified — timer, set logging, summary,
+history view — gets a visible/audible response to the interaction.
+
+Covers must-have 7.
+
+Runs last by definition: its scope is explicitly "what v3 touches," which isn't fully
+known until Phases 1–4 land. Doing it earlier risks covering an interaction that a
+later phase then changes, requiring the feedback work to be redone — the same
+double-work reasoning v2 used to run its UI pass last.
+
+**Exit condition:** every interaction touched by Phases 1–4 (timer start/end, set
+logging, summary appearance, opening the history view) has a visible or audible
+response; no untouched part of the app is retrofitted.
+
+---
+
+## Phase 6 — Nice-to-haves: stalled-workout auto-complete, routine reordering
+
+**Goal:** Pick up the two lower-priority items the outline explicitly scopes into v3
+("later in v3") once the must-haves above ship.
+
+Covers the outline's two nice-to-haves: auto-completing a session/exercise that's been
+open past 3 hours, and drag-and-drop reordering of routines/exercise lists.
+
+Both are independent of Phases 1–5 (session-timeout housekeeping and routine-list
+ordering don't share code with the timer/PR/summary/history work above) — sequenced
+last only because the outline ranks them below the must-haves, not because of a code
+dependency.
+
+**Exit condition:** a session/exercise left open past 3 hours auto-completes instead of
+polluting history/stats; routines and exercise lists can be reordered by drag-and-drop.
+
+---
+
+## Assumptions and flags (planner, v3 roadmap pass)
+
+- Read against the live `index.html`: `restEndMs`/`tickRestTimers` already use an
+  absolute end-timestamp and poll every second, but no sound or Wake Lock exists yet on
+  timer completion, and `visibilitychange` today only re-syncs the elapsed-workout
+  clock (`updateTimer`), not a rest-timer catch-up alert — Phase 2's "reliable alerts"
+  work is real, not just a volume/tone tweak.
+- Phase 2's `[opus?]` tag is a heads-up for a possible service-worker escalation, not a
+  verdict — `@planner Phase 2` and testing decide for real whether the lighter tier
+  (Wake Lock + timestamp + visibilitychange) meets the reliability bar.
+- Nice-to-haves are sequenced as Phase 6 rather than deferred to `docs/FUTURE.md`,
+  since the outline frames them as "this project, later in v3," not out of scope.

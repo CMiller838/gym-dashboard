@@ -195,3 +195,156 @@ of scope here (spec §2.10), for Phase 4 or a later pass to reconcile.
 ## Phase 4 — UI modernization
 
 - [ ] Not yet planned — run `@planner Phase 4`
+
+## Phase 1 — Data integrity: last-time baseline and PR tracking (v3)
+
+Spec: `.claude/specs/phase1_spec.md`. Investigation found must-haves 2 and 3, as
+originally worded, already correct in existing code (see spec §0) — gates answered
+**1A**/**2A** (regression self-tests only, no code change). The real remaining bug,
+surfaced during planning: deleting/unmarking a logged set doesn't recompute PR state,
+so a stale/typo PR can stick around. Gate 3 answered **A** — eager recompute via a new
+frozen `w.preBest` baseline, kept live throughout the workout.
+
+### Logic & backend tasks (TDD — add each self-test case first, watch it fail, then fix)
+
+Regression locks (no behavior change — must-haves 2 and 3 as originally worded already work):
+
+- [ ] Add self-test case for `lastTimeForExercise` proving `buildEntriesFromDay`'s single
+  pre-session call site (`~817`) must never be re-invoked with logs that include the
+  current session's own sets — fixture with/without a synthetic "logged this session"
+  entry, asserting the most-recent-day grouping would pick it up if included (spec §5.1)
+- [ ] Add one-line source comment at the `buildEntriesFromDay` call site (`~817`) pointing
+  at that test, documenting the invariant it locks in
+- [ ] Add self-test case for `computeBestByExercise` asserting a single low-rep heavy set
+  (e.g. 100kg×1) fires a weight PR with no minimum-rep/"max test" gate involved (spec §5.2)
+
+**The real fix — PR recompute on delete/unlog** (spec §1-§4):
+
+- [ ] Add `w.preBest = computeBestByExercise(logs)` at `launchDay` (`~861`), called
+  independently from the existing `w.best` seed — do not share one object between them
+- [ ] Add migration sibling `if(!w.preBest) w.preBest = computeBestByExercise(logs)` next
+  to the existing `w.best` migration check (`~888`); note the resumed-mid-session ceiling
+  with a `ponytail:` comment (spec §1)
+- [ ] Add self-test cases for `recomputeBestForExercise`: PR revoked when its set is
+  deleted and no other session set supports it; PR downgraded (not deleted) when a
+  smaller remaining session set still beats `w.preBest`; typo-correction (delete inflated
+  set, relog correct weight) ends with the corrected, non-PR value; isolation (exercise A
+  recompute leaves exercise B untouched); migration fixture with `w.preBest` absent
+  (spec §5.3-§5.7) — watch each fail first
+- [ ] Add `recomputeBestForExercise(w, exerciseId) -> void`: collect currently-`logged`
+  sets for `exerciseId` across `w.entries`, find the winning weight-set and
+  winning volume-set independently, recompute `w.best[exerciseId]` against `w.preBest`,
+  and reconcile `w.prs`'s record for that exercise — update or delete each track's
+  sub-object based on whether it still beats `w.preBest`, removing the whole record if
+  neither track survives (spec §2). Read `recordPR`'s current field names (`1172-1181`)
+  before wiring the reconciliation — match its existing `weightPR`/`volumePR` shape
+  exactly, don't invent a new one
+- [ ] Call `recomputeBestForExercise(w, entry.exerciseId)` in `removeSetRow`
+  (`1025-1046`), after the existing splice from `entry.sets` and before `renderActiveWorkout()`
+- [ ] Call `recomputeBestForExercise(w, exerciseId)` in `removeExercise` (`1060-1074`),
+  after the delete loop and entry removal, using the exerciseId captured before removal
+- [ ] Call `recomputeBestForExercise(w, entry.exerciseId)` in `unlogSet` (`1280-1296`),
+  after `logged=false; logId=null` and before `renderActiveWorkout()`
+
+No UI/layout tasks this phase — logic-only fix, no new screens.
+
+## Phase 2 — Rest-timer reliability and audio overhaul (v3)
+
+Spec: `.claude/specs/phase2_spec.md`.
+
+### Logic & Backend (TDD)
+
+- [x] `beep(freqs, gain = 0.32)`: add the `gain` param, replace hardcoded `0.25` peak with
+      `gain` in the envelope ramp (index.html `505-521`); confirm existing call sites
+      (`1204`, `1209`) still sound correct at the new louder default.
+- [x] `tickRestTimers` (`996-1013`): in the `remaining <= 0` branch, fire
+      `beep([1200,800,1200,800], 0.5)` + `vibrate([100,80,100,80,100])` before clearing
+      `entry.restEndMs`.
+- [x] Add `wakeLockSentinel` module state + `acquireWakeLock()` / `releaseWakeLock()`
+      helpers (feature-detect `"wakeLock" in navigator`, try/catch no-op on
+      unsupported/denied) alongside existing `audioCtx` state (`246`).
+- [x] Wire `acquireWakeLock()` into `launchDay` right after `restTickInterval` is set
+      (`983`); wire `releaseWakeLock()` into `finishWorkout` (`1376`).
+- [x] Update the `visibilitychange` listener (`1432-1434`) to call `tickRestTimers()` +
+      `acquireWakeLock()` when becoming visible with an active workout; update `pageshow`
+      (`1435`) to call `tickRestTimers()`.
+- [x] Self-test: expired-vs-not-yet-expired `restEndMs` check (see spec §4) added to
+      `runSelfTest` (`1437`) — verified via a Node harness executing the inline script
+      (42/42 checks pass).
+
+### UI & Layout (rapid prototyping)
+
+- [ ] Manual/on-device check: rest timer alert is audibly distinct from set-log and PR
+      sounds and noticeably louder; confirm on at least one mobile browser that
+      backgrounding the tab during a rest countdown and returning before/after expiry
+      behaves per spec §3 edge cases.
+- [ ] Manual check: screen does not sleep during an active workout on a device that
+      supports Wake Lock; confirm no visible regression on a device that doesn't
+      (Firefox/older Safari).
+
+**Phase notes:** Manual on-device verification (audibility/loudness, backgrounding
+behavior, Wake Lock screen-stay-awake) not done this session — no browser/phone available
+in this environment; logic changes verified via the Node self-test harness only.
+
+- [ ] Mark Phase 2 (v3) done in `docs/roadmap.md` and commit it with the code (per
+  `.claude/rules/roadmap-gating.md`) — **not yet**, pending the manual on-device checks
+  above.
+
+## Phase 3 — In-workout exercise history/trend view (v3)
+
+Spec: `.claude/specs/phase3_spec.md`. Decision Gate 1 (graph rendering) resolved: inline SVG
+(hand-built polyline + circles, `viewBox`-scaled) — no new dependency.
+
+### Logic & Backend (TDD)
+
+- [x] `computeExerciseStats(exerciseId, logs)`: returns `{bestWeight, bestVolume, totalSets,
+      lastPerformed}`, reusing `computeBestByExercise` (`734`) for `bestWeight`/`bestVolume`,
+      filtering `logs` for `totalSets`/`lastPerformed`; all fields `null`/`0` when the exercise
+      has no entries.
+- [x] `buildTrendPoints(exerciseId, logs)`: returns ascending-by-date `{date, weight}[]`, one
+      point per calendar day (max weight that day), capped to the most recent 20 days.
+- [x] `renderTrendSvg(points)`: returns SVG markup — empty-state placeholder for 0 points,
+      single `<circle>` (no polyline) for 1 point, scaled `<polyline>` + `<circle>`s for 2+,
+      flat mid-height line when `minW === maxW` (no divide-by-zero).
+- [x] Self-test additions to `runSelfTest` (`~1437`): fixture-based assertions for
+      `computeExerciseStats` (multi-exercise, multi-day fixture incl. an absent-exercise
+      `null`/`0` case) and `buildTrendPoints` (same-day max collapsing, 20-point cap on a
+      25+ day fixture, ascending order) — verified via a Node harness executing the inline
+      script (50/50 checks pass).
+
+### UI & Layout (rapid prototyping)
+
+- [x] `showExerciseDetail(exerciseId, name)`: new function following the existing
+      `openAddExercise`/`showDayPicker` overlay pattern (`div.overlay` > `div.overlay-sheet`,
+      appended to `document.body`) — heading `esc(name)`, 4-stat row (best weight / best
+      volume / total sets / last performed, `null` shown as `"—"`), `renderTrendSvg(...)`
+      output, close button. (No existing overlay in this codebase dismisses on background
+      click — only a Cancel/close button — so this one matches that, not the spec's aside
+      about background-click dismissal.)
+- [x] Hook `.wex-name` (`renderActiveWorkout`, `~962`) to call `showExerciseDetailIdx(idx)` →
+      `showExerciseDetail(entry.exerciseId, entry.name)` on tap, mirroring the existing
+      idx-based inline `onclick` wiring style used by `moveExercise`/`removeExercise`; added a
+      pointer-cursor affordance so it reads as tappable.
+- [x] `.trend-svg` / `.trend-empty` / `.exdetail-stats` CSS: responsive width (`width:100%` on
+      the SVG, fixed `viewBox`), consistent with the app's existing overlay-sheet styling.
+- [ ] Manual check: tap an exercise name mid-workout for (a) an exercise with rich history,
+      (b) an exercise with exactly one prior log, (c) a brand-new never-logged exercise —
+      confirm graph/placeholder rendering and that no in-progress set input loses focus/value
+      when the overlay opens.
+- [ ] Manual check: exercise name containing HTML-significant characters renders literally in
+      the overlay heading (escaping regression check, per the stored-XSS invariant).
+
+- [ ] Mark Phase 3 (v3) done in `docs/roadmap.md` and commit it with the code (per
+  `.claude/rules/roadmap-gating.md`) once the manual checks above pass.
+
+## Phase 4 — Polished summary view (v3)
+
+- [ ] Not yet planned — run `@planner Phase 4`
+
+## Phase 5 — Feedback on every touched interaction (v3)
+
+- [ ] Not yet planned — run `@planner Phase 5`
+
+## Phase 6 — Nice-to-haves: stalled-workout auto-complete, routine reordering (v3)
+
+- [ ] Not yet planned — run `@planner Phase 6`

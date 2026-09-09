@@ -134,7 +134,7 @@
     border-radius:8px; width:26px; height:22px; font-size:11px; line-height:1; padding:0;}
   .wex-card .movebtn:disabled{opacity:0.25;}
   .wex-card .wex-titleblock{flex:1; min-width:0;}
-  .wex-card .wex-name{font-weight:700; font-size:15px;}
+  .wex-card .wex-name{font-weight:700; font-size:15px; cursor:pointer;}
   .wex-card .wex-target{color:var(--muted); font-size:12px; margin-top:2px;}
   .wex-card .removeexbtn{background:none; border:none; color:var(--danger); font-size:16px; padding:2px 4px; opacity:0.75;}
   .wex-card .wex-last{background:var(--card2); border-radius:10px; padding:8px 10px;
@@ -185,6 +185,15 @@
     font-weight:600; border:1.5px solid var(--border);}
   .overlay-sheet .cancel{width:100%; padding:12px; margin-top:8px; background:none; border:none;
     color:var(--muted); font-size:14px;}
+
+  .exdetail-stats{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px;}
+  .exdetail-stats div{background:var(--card2); border-radius:10px; padding:8px 4px; text-align:center;}
+  .exdetail-stats b{display:block; font-size:15px; color:var(--text);}
+  .exdetail-stats span{display:block; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-top:2px;}
+  .trend-svg{width:100%; height:120px; overflow:visible;}
+  .trend-svg polyline{fill:none; stroke:var(--accent); stroke-width:2;}
+  .trend-svg circle{fill:var(--accent);}
+  .trend-empty{text-align:center; color:var(--muted); font-size:13px; padding:24px 0;}
 
   /* --- Feedback: confetti + PR toast --- */
   .confetti-piece{position:fixed; z-index:60; border-radius:2px; pointer-events:none;
@@ -244,6 +253,16 @@ let restTickInterval = null;
 // lands back on the workout screen, never on the backed-out main view (Gate 1A).
 let showMain = false; // true = user backed out of an active workout to browse
 let audioCtx = null;
+let wakeLockSentinel = null;
+async function acquireWakeLock(){
+  try{
+    if("wakeLock" in navigator) wakeLockSentinel = await navigator.wakeLock.request("screen");
+  }catch(e){ /* unsupported or denied — timers still work, just no screen-stay-awake */ }
+}
+function releaseWakeLock(){
+  try{ wakeLockSentinel?.release(); }catch(e){ /* no-op */ }
+  wakeLockSentinel = null;
+}
 // ponytail: summary/summaryCard are deliberately not persisted — a reload during the
 // summary lands on the main screen, which is fine: the workout is already saved by then.
 let summary = null; // { durationMin, totals:{sets,reps,volume}, prs:[], muscles:[] }
@@ -502,19 +521,19 @@ function primeAudio(){
 
 // ponytail: no mute toggle — iOS ringer switch silences WebAudio, Android does not;
 // add a persisted toggle only if it annoys.
-function beep(freqs){
+function beep(freqs, gain = 0.32){
   try{
     if(!audioCtx) return;
     freqs.forEach((freq, i) => {
       const t0 = audioCtx.currentTime + i*0.07;
       const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
+      const gainNode = audioCtx.createGain();
       osc.type = "triangle";
       osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.linearRampToValueAtTime(0.25, t0 + 0.005);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
-      osc.connect(gain).connect(audioCtx.destination);
+      gainNode.gain.setValueAtTime(0.0001, t0);
+      gainNode.gain.linearRampToValueAtTime(gain, t0 + 0.005);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
+      osc.connect(gainNode).connect(audioCtx.destination);
       osc.start(t0);
       osc.stop(t0 + 0.07);
     });
@@ -754,6 +773,83 @@ function summaryTotals(entries){
   return { sets, reps, volume };
 }
 
+// Lifetime stats for one exercise, from allLogsCache. best pre-computed by the caller
+// (existing computeBestByExercise result) is accepted to avoid recomputing it.
+function computeExerciseStats(exerciseId, logs, best){
+  const b = (best || computeBestByExercise(logs))[exerciseId];
+  const exLogs = (logs||[]).filter(l => l.exercise === exerciseId);
+  let lastPerformed = null;
+  for(const l of exLogs){
+    if(!lastPerformed || l.date > lastPerformed) lastPerformed = l.date;
+  }
+  return {
+    bestWeight: b ? b.w : null,
+    bestVolume: b ? b.v : null,
+    totalSets: exLogs.length,
+    lastPerformed
+  };
+}
+
+// One point per calendar day this exercise was logged (max weight that day), ascending,
+// capped to the most recent 20 days.
+function buildTrendPoints(exerciseId, logs){
+  const byDay = {};
+  for(const l of (logs||[])){
+    if(l.exercise !== exerciseId) continue;
+    const w = parseFloat(l.weight || 0);
+    if(w <= 0) continue;
+    const dk = dayKey(l.date);
+    if(!byDay[dk] || w > byDay[dk]) byDay[dk] = w;
+  }
+  return Object.keys(byDay).sort().slice(-20).map(dk => ({ date: dk, weight: byDay[dk] }));
+}
+
+// Hand-built inline SVG, no charting dependency — viewBox 0..300 x 0..100.
+function renderTrendSvg(points){
+  if(!points.length) return `<div class="trend-empty">No history yet</div>`;
+  if(points.length === 1){
+    return `<svg viewBox="0 0 300 100" preserveAspectRatio="none" class="trend-svg"><circle cx="150" cy="50" r="4"/></svg>`;
+  }
+  const ws = points.map(p => p.weight);
+  const minW = Math.min(...ws), maxW = Math.max(...ws);
+  const flat = minW === maxW;
+  const xs = points.map((p,i) => (i/(points.length-1))*300);
+  const ys = flat ? points.map(() => 50) : points.map(p => 100 - ((p.weight-minW)/(maxW-minW))*100);
+  const pts = xs.map((x,i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(" ");
+  const circles = xs.map((x,i) => `<circle cx="${x.toFixed(1)}" cy="${ys[i].toFixed(1)}" r="3"/>`).join("");
+  return `<svg viewBox="0 0 300 100" preserveAspectRatio="none" class="trend-svg"><polyline points="${pts}"/>${circles}</svg>`;
+}
+
+function showExerciseDetailIdx(idx){
+  const w = getActive();
+  const entry = w && w.entries[idx];
+  if(!entry) return;
+  showExerciseDetail(entry.exerciseId, entry.name);
+}
+
+function showExerciseDetail(exerciseId, name){
+  if(!exerciseId){ return; }
+  const logs = allLogsCache || [];
+  const stats = computeExerciseStats(exerciseId, logs);
+  const points = buildTrendPoints(exerciseId, logs);
+  const fmt = (v) => v === null || v === undefined ? "—" : v;
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `<div class="overlay-sheet">
+    <h3>${esc(name)}</h3>
+    <div class="exdetail-stats">
+      <div><b>${fmt(stats.bestWeight)}</b><span>Best kg</span></div>
+      <div><b>${fmt(stats.bestVolume)}</b><span>Best vol</span></div>
+      <div><b>${fmt(stats.totalSets)}</b><span>Total sets</span></div>
+      <div><b>${fmt(stats.lastPerformed)}</b><span>Last time</span></div>
+    </div>
+    ${renderTrendSvg(points)}
+    <button class="cancel" id="exdetailClose">Close</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById("exdetailClose").onclick = () => { if(overlay.parentNode) document.body.removeChild(overlay); };
+}
+
 function lastTimeForExercise(exerciseId, logs){
   // ponytail: only the last 500 fetched logs are searched (see the `limit=500` fetches);
   // an exercise not performed within that window shows a blank Previous column — widen the
@@ -949,7 +1045,7 @@ function renderActiveWorkout(){
           <button class="movebtn" onclick="moveExercise(${idx},1)" ${idx===w.entries.length-1?'disabled':''} title="Move down">▼</button>
         </div>
         <div class="wex-titleblock">
-          <div class="wex-name">${esc(entry.name)}</div>
+          <div class="wex-name" onclick="showExerciseDetailIdx(${idx})">${esc(entry.name)}</div>
           <div class="wex-target">Target: ${entry.sets.length} sets · Rest ${fmtRest(entry.restSeconds)} · ${doneCount}/${entry.sets.length} done</div>
         </div>
         <button class="removeexbtn" onclick="removeExercise(${idx})" title="Remove exercise">🗑</button>
@@ -981,6 +1077,7 @@ function renderActiveWorkout(){
 
   if(restTickInterval) clearInterval(restTickInterval);
   restTickInterval = setInterval(tickRestTimers, 1000);
+  acquireWakeLock();
 }
 
 function updateTimer(){
@@ -1002,6 +1099,8 @@ function tickRestTimers(){
     if(!entry.restEndMs){ if(box) box.remove(); return; }
     const remaining = Math.max(0, Math.ceil((entry.restEndMs - Date.now())/1000));
     if(remaining <= 0){
+      beep([1200,800,1200,800], 0.5);
+      vibrate([100,80,100,80,100]);
       entry.restEndMs = null;
       setActive(w);
       if(box) box.remove();
@@ -1378,6 +1477,7 @@ async function finishWorkout(){
   if(!w) return;
   const totalSets = w.entries.reduce((sum,e) => sum + e.sets.filter(s => s.logged).length, 0);
   if(!confirm(`Finish workout? ${totalSets} set${totalSets===1?'':'s'} logged.`)) return;
+  releaseWakeLock();
   try{
     // ponytail: cross-midnight sessions (start before, end after local midnight) store
     // time_end < time_start — wger has no way to represent that; not fixed here.
@@ -1430,9 +1530,12 @@ async function discardWorkout(){
 }
 
 document.addEventListener("visibilitychange", () => {
-  if(document.visibilityState === "visible" && getActive()) updateTimer();
+  if(document.visibilityState === "visible" && getActive()){
+    tickRestTimers();
+    acquireWakeLock();
+  }
 });
-window.addEventListener("pageshow", () => { if(getActive()) updateTimer(); });
+window.addEventListener("pageshow", () => { if(getActive()) tickRestTimers(); });
 
 function runSelfTest(){
   let checks = 0, failed = 0;
@@ -1545,6 +1648,38 @@ function runSelfTest(){
     assert(w.prs.length === 1, "recordPR: one record per exerciseId");
     assert(w.prs[0].weightPR && w.prs[0].weightPR.weight === 100, "recordPR: weight track not overwritten by later volume-only set");
     assert(w.prs[0].volumePR && w.prs[0].volumePR.weight === 90, "recordPR: volume track recorded");
+  }
+
+  {
+    const isExpired = (restEndMs) => Math.max(0, Math.ceil((restEndMs - Date.now())/1000)) <= 0;
+    assert(isExpired(Date.now() - 1000) === true, "rest timer: expired restEndMs evaluates true");
+    assert(isExpired(Date.now() + 5000) === false, "rest timer: future restEndMs evaluates false");
+  }
+
+  {
+    const logs = [
+      {exercise:1, weight:"100", repetitions:"2", date:"2026-09-01"},
+      {exercise:1, weight:"110", repetitions:"3", date:"2026-09-01"},
+      {exercise:1, weight:"90", repetitions:"5", date:"2026-09-03"},
+      {exercise:2, weight:"50", reps:"8", date:"2026-09-02"}
+    ];
+    const s1 = computeExerciseStats(1, logs);
+    assert(s1.bestWeight === 110 && s1.bestVolume === 450, "computeExerciseStats: bestWeight/bestVolume from computeBestByExercise");
+    assert(s1.totalSets === 3, "computeExerciseStats: totalSets counts all logs for exercise");
+    assert(s1.lastPerformed === "2026-09-03", "computeExerciseStats: lastPerformed is max date");
+    const s3 = computeExerciseStats(3, logs);
+    assert(s3.bestWeight === null && s3.bestVolume === null && s3.totalSets === 0 && s3.lastPerformed === null, "computeExerciseStats: absent exercise -> all null/0");
+
+    const points = buildTrendPoints(1, logs);
+    assert(points.length === 2, "buildTrendPoints: one point per distinct day");
+    assert(points[0].date === "2026-09-01" && points[0].weight === 110, "buildTrendPoints: same-day max weight collapsed, ascending order");
+    assert(points[1].date === "2026-09-03" && points[1].weight === 90, "buildTrendPoints: second day present");
+
+    const manyLogs = [];
+    for(let i=0; i<25; i++){
+      manyLogs.push({exercise:9, weight:"50", reps:"5", date:`2026-01-${String(i+1).padStart(2,"0")}`});
+    }
+    assert(buildTrendPoints(9, manyLogs).length === 20, "buildTrendPoints: capped to most recent 20 days");
   }
 
   console.log(`selftest: ${checks} checks, ${failed} failed`);
