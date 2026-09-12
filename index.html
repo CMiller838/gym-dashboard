@@ -87,10 +87,12 @@
     padding:14px 22px; font-weight:700; font-size:14.5px; min-height:48px; text-transform:uppercase; letter-spacing:.03em;}
 
   .routine-card{background:var(--card); border:1px solid var(--border); border-radius:14px;
-    padding:16px; margin-bottom:12px;}
+    padding:16px; margin-bottom:12px; touch-action:pan-y;}
+  .routine-card.dragging{opacity:0.6; box-shadow:0 8px 20px rgba(0,0,0,0.35); z-index:10; position:relative;}
   .routine-card .rtop{display:flex; justify-content:space-between; align-items:center; gap:10px;}
   .routine-card .rname{font-weight:700; font-size:15px;}
   .routine-card .rmeta{color:var(--muted); font-size:12px; margin-top:2px;}
+  .drag-handle{color:var(--muted); cursor:grab; font-size:16px; padding:4px 8px; touch-action:none;}
   .startbtn{background:var(--accent); color:#08131f; border:none; border-radius:10px;
     padding:10px 16px; font-weight:700; font-size:12.5px; white-space:nowrap; text-transform:uppercase; letter-spacing:.03em;}
   .startbtn:disabled{opacity:0.5;}
@@ -130,8 +132,9 @@
   .workout-header .wtitle{flex:1; min-width:0;}
 
   .wex-card{background:var(--card); border:1px solid var(--border); border-radius:14px;
-    margin:12px 16px; padding:16px; transition:border-color 0.2s;}
+    margin:12px 16px; padding:16px; transition:border-color 0.2s; touch-action:pan-y;}
   .wex-card.done{border-color:rgba(79,176,255,0.4);}
+  .wex-card.dragging{opacity:0.6; box-shadow:0 8px 20px rgba(0,0,0,0.35); z-index:10; position:relative;}
   .wex-card .wex-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
   .wex-card .wex-move{display:flex; flex-direction:column; gap:4px;}
   .wex-card .movebtn{background:var(--card2); border:1px solid var(--border); color:var(--muted);
@@ -320,6 +323,8 @@ const TOKEN_KEY = "wger_api_token";
 const ACTIVE_KEY = "active_workout";
 const EXINDEX_KEY = "exercise_index_v2";
 const EXINDEX_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const SESSION_STALL_MS = 3 * 60 * 60 * 1000;
+const ROUTINE_ORDER_KEY = "routine_order";
 let token = localStorage.getItem(TOKEN_KEY);
 let exerciseCache = {};
 try{
@@ -334,15 +339,22 @@ let allLogsCache = null; // populated on normal render, used for "last time" loo
 let exerciseIndex = null; // [{id,name}], lazily built/cached for the exercise picker
 let renderGeneration = 0; // bumped on every render() call; stale calls bail out instead of overwriting fresher state
 let restTickInterval = null;
+let swReg = null; // ServiceWorkerRegistration | null — set by registerServiceWorker()
+let bgAlertTimeout = null; // setTimeout id for the armed background rest-timer alert, or null
 // ponytail: showMain is deliberately not persisted — a reload/relaunch mid-workout always
 // lands back on the workout screen, never on the backed-out main view (Gate 1A).
 let showMain = false; // true = user backed out of an active workout to browse
 let audioCtx = null;
+let compressorNode = null;
 let wakeLockSentinel = null;
 async function acquireWakeLock(){
   try{
     if("wakeLock" in navigator) wakeLockSentinel = await navigator.wakeLock.request("screen");
   }catch(e){ /* unsupported or denied — timers still work, just no screen-stay-awake */ }
+}
+function registerServiceWorker(){
+  if(!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("sw.js").then((reg) => { swReg = reg; }).catch((e) => { /* no-op — background alerts are an enhancement, not a boot blocker */ });
 }
 function releaseWakeLock(){
   try{ wakeLockSentinel?.release(); }catch(e){ /* no-op */ }
@@ -357,6 +369,53 @@ function saveExerciseCache(){ localStorage.setItem("exercise_name_cache", JSON.s
 function getActive(){ try{ return JSON.parse(localStorage.getItem(ACTIVE_KEY) || "null"); }catch(e){ return null; } }
 function setActive(w){ localStorage.setItem(ACTIVE_KEY, JSON.stringify(w)); }
 function clearActive(){ localStorage.removeItem(ACTIVE_KEY); }
+
+function isSessionStale(w){ return !!w && (Date.now() - w.startedAtMs) > SESSION_STALL_MS; }
+
+function loadRoutineOrder(){
+  try{
+    const ids = JSON.parse(localStorage.getItem(ROUTINE_ORDER_KEY) || "[]");
+    return Array.isArray(ids) ? ids : [];
+  }catch(e){ return []; }
+}
+function saveRoutineOrder(ids){ localStorage.setItem(ROUTINE_ORDER_KEY, JSON.stringify(ids)); }
+
+// Shared Pointer Events drag-to-reorder for a list of sibling elements matching
+// itemSelector inside containerEl. Native Pointer Events (not HTML5 dragstart/dragover)
+// because HTML5 native DnD is unreliable on iOS Safari and this is a mobile-first PWA.
+// Idempotent — safe to call again after every re-render, since each render rebuilds the DOM.
+function attachDragReorder(containerEl, itemSelector, onReorder){
+  let dragEl = null, order = [];
+  containerEl.querySelectorAll(itemSelector).forEach(item => {
+    const handle = item.querySelector(".drag-handle") || item;
+    handle.addEventListener("pointerdown", e => {
+      dragEl = item;
+      order = Array.from(containerEl.querySelectorAll(itemSelector));
+      dragEl.classList.add("dragging");
+      try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+      e.preventDefault();
+    });
+  });
+  containerEl.addEventListener("pointermove", e => {
+    if(!dragEl) return;
+    const siblings = order.filter(el => el !== dragEl);
+    let next = null;
+    for(const sib of siblings){
+      const rect = sib.getBoundingClientRect();
+      if(e.clientY < rect.top + rect.height / 2){ next = sib; break; }
+    }
+    containerEl.insertBefore(dragEl, next);
+  });
+  const finishDrag = () => {
+    if(!dragEl) return;
+    dragEl.classList.remove("dragging");
+    const newOrder = Array.from(containerEl.querySelectorAll(itemSelector)).map(el => order.indexOf(el));
+    dragEl = null;
+    onReorder(newOrder);
+  };
+  containerEl.addEventListener("pointerup", finishDrag);
+  containerEl.addEventListener("pointercancel", finishDrag);
+}
 
 const REQUEST_TIMEOUT_MS = 20000;
 
@@ -590,13 +649,26 @@ function renderMainHeader(){
   header.innerHTML = `<h1>🏋️ Gym Log</h1><div class="sub" id="headerSub">syncing…</div>`;
 }
 
+function bgAlertButtonHtml(){
+  const show = ("Notification" in window) && ("serviceWorker" in navigator) && Notification.permission === "default";
+  return show ? `<button id="bgAlertBtn" onclick="enableBackgroundAlerts()">🔔 Enable background alerts</button>` : "";
+}
 function renderToolbar(){
   const bar = document.getElementById("mainToolbar");
   const w = getActive();
-  bar.innerHTML = w
+  bar.innerHTML = (w
     ? `<button class="resumebtn" onclick="renderActiveWorkout()">▶ ${esc(w.dayName)} · <span id="resumeMins">${Math.max(0, Math.floor((Date.now() - w.startedAtMs) / 60000))}</span> min</button>`
-    : `<button onclick="location.reload()">↻ Refresh</button><button class="reset" onclick="resetToken()">⎋ Change token</button>`;
+    : `<button onclick="location.reload()">↻ Refresh</button><button class="reset" onclick="resetToken()">⎋ Change token</button>`) + bgAlertButtonHtml();
   bar.style.display = "flex";
+}
+// ponytail: requestPermission() must stay directly in this click handler's call
+// stack (no await before it) or browsers silently ignore it as not user-initiated.
+function enableBackgroundAlerts(){
+  Notification.requestPermission().then((result) => {
+    const btn = document.getElementById("bgAlertBtn");
+    if(btn) btn.remove();
+    if(result === "granted" && document.visibilityState === "hidden") armBackgroundAlert();
+  });
 }
 
 function backToMain(){ showMain = true; render(); }
@@ -605,24 +677,33 @@ function primeAudio(){
   try{
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtx.resume();
+    if(!compressorNode){
+      compressorNode = audioCtx.createDynamicsCompressor();
+      compressorNode.threshold.value = -6;
+      compressorNode.knee.value = 0;
+      compressorNode.ratio.value = 20;
+      compressorNode.attack.value = 0.003;
+      compressorNode.release.value = 0.1;
+      compressorNode.connect(audioCtx.destination);
+    }
   }catch(e){ /* audio unavailable — set logging must still work */ }
 }
 
 // ponytail: no mute toggle — iOS ringer switch silences WebAudio, Android does not;
 // add a persisted toggle only if it annoys.
-function beep(freqs, gain = 0.32){
+function beep(freqs, gain = 0.4){
   try{
     if(!audioCtx) return;
     freqs.forEach((freq, i) => {
       const t0 = audioCtx.currentTime + i*0.07;
       const osc = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
-      osc.type = "triangle";
+      osc.type = "square";
       osc.frequency.value = freq;
       gainNode.gain.setValueAtTime(0.0001, t0);
       gainNode.gain.linearRampToValueAtTime(gain, t0 + 0.005);
       gainNode.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
-      osc.connect(gainNode).connect(audioCtx.destination);
+      osc.connect(gainNode).connect(compressorNode);
       osc.start(t0);
       osc.stop(t0 + 0.07);
     });
@@ -632,6 +713,7 @@ function beep(freqs, gain = 0.32){
 async function render(){
   if(!token){ showSetup(); return; }
   const active = getActive();
+  if(active && isSessionStale(active)){ await autoCompleteStaleSession(active); return render(); }
   if(active && !showMain){ renderActiveWorkout(); return; }
 
   const myGeneration = ++renderGeneration;
@@ -794,12 +876,21 @@ function renderRoutines(routines){
     content.innerHTML = tabsHtml() + `<div class="empty">No routines found.</div>`;
     return;
   }
-  let html = tabsHtml() + `<section><h2>Your Routines</h2>`;
-  const sorted = [...routines].sort((a,b) => new Date(b.created) - new Date(a.created));
+  let html = tabsHtml() + `<section id="routineList"><h2>Your Routines</h2>`;
+  const byCreatedDesc = (a,b) => new Date(b.created) - new Date(a.created);
+  const orderIds = loadRoutineOrder();
+  const orderIndex = new Map(orderIds.map((id,i) => [id,i]));
+  const sorted = [...routines].sort((a,b) => {
+    const ai = orderIndex.has(a.id) ? orderIndex.get(a.id) : Infinity;
+    const bi = orderIndex.has(b.id) ? orderIndex.get(b.id) : Infinity;
+    if(ai !== bi) return ai - bi;
+    return byCreatedDesc(a,b);
+  });
   for(const r of sorted){
     html += `<div class="routine-card">
       <div class="rtop">
-        <div>
+        <span class="drag-handle">⠿</span>
+        <div style="flex:1">
           <div class="rname">${esc(r.name)}</div>
           <div class="rmeta">${esc(r.start)} → ${esc(r.end)}${r.description ? " · " + esc(r.description) : ""}</div>
         </div>
@@ -809,6 +900,11 @@ function renderRoutines(routines){
   }
   html += `</section>`;
   content.innerHTML = html;
+
+  attachDragReorder(document.getElementById("routineList"), ".routine-card", (newOrder) => {
+    saveRoutineOrder(newOrder.map(i => sorted[i].id));
+    renderRoutines(routines);
+  });
 }
 
 // ---------- ACTIVE WORKOUT ----------
@@ -1129,6 +1225,7 @@ function renderActiveWorkout(){
 
     html += `<div class="wex-card ${isDone?'done':''}">
       <div class="wex-top">
+        <span class="drag-handle">⠿</span>
         <div class="wex-move">
           <button class="movebtn" onclick="moveExercise(${idx},-1)" ${idx===0?'disabled':''} title="Move up">▲</button>
           <button class="movebtn" onclick="moveExercise(${idx},1)" ${idx===w.entries.length-1?'disabled':''} title="Move down">▼</button>
@@ -1151,7 +1248,16 @@ function renderActiveWorkout(){
 
   html += `<button class="addexbtn" onclick="openAddExercise()">+ Add Exercise</button>`;
   html += `<div style="height:80px"></div>`;
-  document.getElementById("content").innerHTML = html;
+  const content = document.getElementById("content");
+  content.innerHTML = html;
+
+  attachDragReorder(content, ".wex-card", (newOrder) => {
+    const active = getActive();
+    if(!active) return;
+    active.entries = newOrder.map(i => active.entries[i]);
+    setActive(active);
+    renderActiveWorkout();
+  });
 
   const finishBar = document.getElementById("finishBar");
   if(!finishBar){
@@ -1182,13 +1288,14 @@ function updateTimer(){
 function tickRestTimers(){
   const w = getActive();
   if(!w) return;
+  if(isSessionStale(w)){ autoCompleteStaleSession(w); render(); return; }
   updateTimer();
   w.entries.forEach((entry, idx) => {
     const box = document.getElementById(`rest_${idx}`);
     if(!entry.restEndMs){ if(box) box.remove(); return; }
     const remaining = Math.max(0, Math.ceil((entry.restEndMs - Date.now())/1000));
     if(remaining <= 0){
-      beep([1200,800,1200,800], 0.5);
+      beep([1200,800,1200,800], 0.65);
       vibrate([100,80,100,80,100]);
       entry.restEndMs = null;
       setActive(w);
@@ -1198,6 +1305,40 @@ function tickRestTimers(){
     const secEl = document.getElementById(`restsec_${idx}`);
     if(secEl) secEl.textContent = fmtRest(remaining);
   });
+}
+
+function nextRestEndMs(){
+  const w = getActive();
+  if(!w) return null;
+  const now = Date.now();
+  const future = w.entries.map(e => e.restEndMs).filter(ms => ms && ms > now);
+  return future.length ? Math.min(...future) : null;
+}
+function disarmBackgroundAlert(){
+  clearTimeout(bgAlertTimeout);
+  bgAlertTimeout = null;
+}
+// ponytail: only the soonest rest timer is armed — concurrent rest timers across
+// entries aren't a real usage pattern here; add per-entry arming if that changes.
+function armBackgroundAlert(){
+  disarmBackgroundAlert();
+  if(!swReg || Notification.permission !== "granted") return;
+  const endMs = nextRestEndMs();
+  if(endMs === null) return;
+  bgAlertTimeout = setTimeout(() => {
+    bgAlertTimeout = null;
+    if(document.visibilityState === "visible") return;
+    if(Date.now() - endMs > 5000) return;
+    const w = getActive();
+    const entry = w ? w.entries.find(e => e.restEndMs === endMs) : null;
+    swReg.showNotification("Rest over", {
+      body: entry ? entry.name : "",
+      tag: "rest-timer",
+      renotify: true,
+      vibrate: [100,80,100,80,100],
+      icon: "icon-192.png"
+    });
+  }, endMs - Date.now());
 }
 
 function addSetRow(idx){
@@ -1566,6 +1707,10 @@ async function finishWorkout(){
   if(!w) return;
   const totalSets = w.entries.reduce((sum,e) => sum + e.sets.filter(s => s.logged).length, 0);
   if(!confirm(`Finish workout? ${totalSets} set${totalSets===1?'':'s'} logged.`)) return;
+  await finalizeWorkout(w);
+}
+
+async function finalizeWorkout(w){
   releaseWakeLock();
   try{
     // ponytail: cross-midnight sessions (start before, end after local midnight) store
@@ -1585,6 +1730,12 @@ async function finishWorkout(){
   if(s.totals.sets === 0){ render(); return; }
   summary = s; summaryCard = 0;
   renderSummary();
+}
+
+// No confirm() — called only from the stale-session auto-complete hooks, never from a
+// user tap.
+async function autoCompleteStaleSession(w){
+  await finalizeWorkout(w);
 }
 
 async function discardWorkout(){
@@ -1619,7 +1770,10 @@ async function discardWorkout(){
 }
 
 document.addEventListener("visibilitychange", () => {
-  if(document.visibilityState === "visible" && getActive()){
+  if(document.visibilityState === "hidden"){
+    armBackgroundAlert();
+  }else if(document.visibilityState === "visible" && getActive()){
+    disarmBackgroundAlert();
     tickRestTimers();
     acquireWakeLock();
   }
@@ -1777,6 +1931,32 @@ function runSelfTest(){
   assert(formatKg(12500).includes(","), "formatKg: thousands separator");
   assert(formatKg(0) === "0" && formatKg(null) === "0" && formatKg(undefined) === "0", "formatKg: 0/null/undefined -> \"0\"");
 
+  assert(isSessionStale(null) === false, "isSessionStale: null -> false");
+  assert(isSessionStale({startedAtMs: Date.now()}) === false, "isSessionStale: just started -> false");
+  assert(isSessionStale({startedAtMs: Date.now() - 2*60*60*1000}) === false, "isSessionStale: 2h old -> false");
+  assert(isSessionStale({startedAtMs: Date.now() - 4*60*60*1000}) === true, "isSessionStale: 4h old -> true");
+
+  {
+    const before = localStorage.getItem(ROUTINE_ORDER_KEY);
+    localStorage.removeItem(ROUTINE_ORDER_KEY);
+    assert(Array.isArray(loadRoutineOrder()) && loadRoutineOrder().length === 0, "loadRoutineOrder: missing key -> []");
+    saveRoutineOrder([3,1,2]);
+    assert(JSON.stringify(loadRoutineOrder()) === "[3,1,2]", "saveRoutineOrder/loadRoutineOrder: round-trip");
+    localStorage.setItem(ROUTINE_ORDER_KEY, "not json{{");
+    assert(Array.isArray(loadRoutineOrder()) && loadRoutineOrder().length === 0, "loadRoutineOrder: corrupt data -> []");
+    if(before === null) localStorage.removeItem(ROUTINE_ORDER_KEY); else localStorage.setItem(ROUTINE_ORDER_KEY, before);
+  }
+
+  {
+    const before = localStorage.getItem(ACTIVE_KEY);
+    const now = Date.now();
+    setActive({ entries: [{restEndMs: now - 1000}, {restEndMs: now + 5000}, {restEndMs: now + 2000}] });
+    assert(nextRestEndMs() === now + 2000, "nextRestEndMs: soonest future restEndMs across entries");
+    setActive({ entries: [{restEndMs: null}, {restEndMs: now - 1000}] });
+    assert(nextRestEndMs() === null, "nextRestEndMs: no future restEndMs -> null");
+    if(before === null) localStorage.removeItem(ACTIVE_KEY); else localStorage.setItem(ACTIVE_KEY, before);
+  }
+
   console.log(`selftest: ${checks} checks, ${failed} failed`);
 }
 if(location.hash === "#selftest") runSelfTest();
@@ -1787,6 +1967,7 @@ if(location.hash === "#selftest") runSelfTest();
 // never shows on iPhone. A no-op passive listener is the standard fix, no library.
 document.addEventListener("touchstart", function(){}, {passive:true});
 
+registerServiceWorker();
 render();
 </script>
 </body>
