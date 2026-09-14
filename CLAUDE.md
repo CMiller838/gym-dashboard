@@ -12,6 +12,13 @@ this repo's own `git log` only covers the Claude Code setup layered on top. See
 `docs/ARCHITECTURE.md` for how the single file is organized internally (state, API
 layer, render functions, PWA install flow).
 
+`docs/roadmap.md` is the single active roadmap file — superseded versions live in
+`.claude/archive/`. Never create a new versioned roadmap file — always overwrite
+`docs/roadmap.md` in place; archive its prior content first if fully superseded.
+**Before every commit, mark the roadmap.** Any commit that finishes a roadmap phase
+must, in that same commit, append `— done` to the phase heading and record what was
+verified. Enforcement: `.claude/rules/roadmap-gating.md`.
+
 ## Commands
 
 ```

@@ -77,6 +77,12 @@ later for a genuine architectural decision.
   that still separate genuinely sequential work.
 - Surfaces at most one Decision Gate per phase, only if that phase's scope is
   genuinely ambiguous.
+- Runs on Sonnet by default (same as phase mode) — Opus is reserved for
+  `@architect`'s actual stack decisions. While naming phases it tags any whose
+  goal implies a genuine architectural fork (new data flow, storage/backend
+  shift, security-sensitive design) with `[opus?]` as a heads-up; it's a
+  skim-level guess, not a verdict — confirm for real when that phase reaches
+  phase mode, and tell the planner to run on Opus for that one call if so.
 - Writes phase headings + one-sentence goals to `docs/roadmap.md` and bare
   phase-title placeholders to `tasks.md`. Does **not** write specs or detailed
   task breakdowns here — that's Stage 3, deliberately deferred to phase mode,
@@ -88,12 +94,17 @@ later for a genuine architectural decision.
 
 Full 3-stage lifecycle:
 
-1. **Silent discovery** — Glob/Grep the codebase; delegates bulk file-reading
-   (>2-3 files, or a broad pattern scan) to the `scanner` subagent to save
-   opus tokens. Also does the "does an existing dependency/stdlib/library
+1. **Silent discovery** — Glob/Grep the codebase; delegates any file-reading
+   beyond a single file, or a broad pattern scan, to the `scanner` subagent
+   (Haiku) to keep discovery cheap. Never reads `docs/roadmap.md` or
+   `tasks.md` in full — greps for the relevant section only, since both grow
+   every phase. Also does the "does an existing dependency/stdlib/library
    already solve this" check here, once, at plan time — the build step
    shouldn't need to re-research it. A new dependency gets flagged as a
-   decision for the user, never spec'd in silently.
+   decision for the user, never spec'd in silently. Runs on Sonnet at medium
+   effort by default; escalate to Opus per-call only if the phase was tagged
+   `[opus?]` in the roadmap or a Decision Gate below turns out to be a real
+   architectural fork.
 2. **Options-first interview** — up to 3 Decision Gates (Path A vs. B,
    pros/cons, a recommendation) when there's a real architectural fork. This
    **HALTs** until you answer — non-negotiable, even if told to skip it.
@@ -125,7 +136,10 @@ Full 3-stage lifecycle:
 - Run `/code-review` or `/simplify` on the phase's diff before committing —
   TDD proves the tests you wrote pass, not that you didn't over-build around
   them; this is what catches both correctness bugs and creep.
-- Mark completed `tasks.md` items `- [x]` once their tests pass.
+- Mark completed `tasks.md` items `- [x]` once their tests pass. Scope your read to
+  the current phase — `tasks.md` accumulates every prior phase's full checklist, so
+  grep for the current phase's `^## Phase N` heading and the next `^## Phase`
+  heading to find its line range, and read only that slice.
 - Commit. `.claude/rules/roadmap-gating.md` requires the same commit to mark
   the roadmap phase `— done` (with what was verified) once its exit condition
   is actually met — never a separate follow-up commit.

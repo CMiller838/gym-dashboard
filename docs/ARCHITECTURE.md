@@ -66,6 +66,7 @@ markup away and rebuilds it on the next render. `renderGeneration` is bumped on 
   clients (e.g. the official mobile app) to create sessions of their own.
 - **PWA shell** (`manifest.json` + icons) — install-to-homescreen metadata only; no
   service worker, so there's no offline cache or background sync to reason about.
+  (ADR 001 below proposes a narrowly-scoped exception to this.)
 
 ## Security note (accepted trade-off)
 
@@ -76,6 +77,114 @@ the app ever needs third-party JS or dynamic HTML from a source other than wger,
 storage choice must be revisited first (e.g. a small backend proxying wger with
 short-lived session cookies) — that's a real architecture change, not a tweak, and
 needs sign-off before it happens.
+
+## ADR 001 — Background/locked-phone rest-timer alerts (v4 must-have 2)
+
+**Status:** Accepted. User confirmed 2026-09-12: accept the iOS ceiling (foreground-only alerts) rather than reopen the no-backend invariant.
+
+### Context
+
+The rest timer is a `restEndMs` timestamp on each active-workout entry, polled by a
+1s `setInterval` (`tickRestTimers`) that runs *in the page*. When it hits zero it calls
+`beep()` + `vibrate()`. That only works while the page is alive and visible; when the
+app is backgrounded or the phone is locked, the page is throttled or suspended and
+nothing fires. v4 wants an OS notification (and vibration) in that case,
+local-device-only, no backend.
+
+Three platform facts drive the whole decision:
+
+1. **The `new Notification()` constructor is not usable on mobile.** Android Chrome
+   throws on it outright; iOS Safari doesn't implement it. Mobile notifications can only
+   be raised via `serviceWorkerRegistration.showNotification()`. **A service worker is
+   therefore mandatory for any version of this feature** — there is no no-SW path.
+2. **There is no local scheduled-notification API on the web.** The Notification
+   Triggers API (`TimestampTrigger`) never shipped past origin trial and is gone. A
+   `setTimeout` *inside* a service worker is worthless — SWs are killed after ~30s idle
+   and are only woken by an external event (push, sync), never by their own pending
+   timer. So the timer has to stay in the page, and the page has to still be running
+   when it fires.
+3. **`navigator.vibrate` does not exist on iOS Safari, at all.** The existing
+   `vibrate()` calls are already silent no-ops on iPhone. On iOS the *only* way to get
+   a haptic/sound alert is a delivered notification (the OS vibrates it). On Android,
+   `vibrate` also won't run from a backgrounded page — but a notification's `vibrate`
+   option in `showNotification()` does fire.
+
+### Options considered
+
+| Option | Needs | Android Chrome (installed PWA) | iOS Safari (home-screen PWA) |
+|---|---|---|---|
+| **A. Page `setTimeout` → SW `showNotification()`** | SW (notification only) | Works. A single long timeout in a hidden page fires near-on-time; Chrome's intensive throttling/freezing starts ~5 min after backgrounding, and rest timers are 30–300s | **Does not work.** WebKit suspends the web process on background/lock; the timeout fires only when you reopen the app |
+| **B. Web Push** | SW **+ a push server** | Works, incl. locked | Works (iOS 16.4+, installed PWA only), incl. locked |
+| **C. Notification Triggers** (`showTrigger`) | SW | Not available — never shipped | Not available |
+| **D. Keep the page alive with looping silent audio** | SW still needed to notify | Prevents freezing | Keeps the process alive, but seizes the audio session |
+| **E. Screen Wake Lock only** (already in the app) | nothing new | Prevents auto-lock while foregrounded; does nothing once the user switches apps or presses lock | same |
+
+**B is excluded by the fixed constraints** — it's the only thing that fully solves iOS,
+and it requires a backend (push service, VAPID keys, stored subscriptions, something
+sending the message). That is the honest trade: *iOS background notifications are not
+achievable without a server.* No amount of SW cleverness changes that.
+
+**D is rejected on its own merits**, not just laziness: it pauses/ducks the user's
+music, which directly contradicts v4 must-have 1 ("audible over music"), and burns
+battery for a whole session, with a permanent playing-audio indicator in the OS. Worse
+product than the problem it fixes.
+
+### Decision
+
+**Adopt Option A.** Add a minimal service worker whose only job is to exist so
+`registration.showNotification()` can be called. The timer stays where it is, in the
+page. On `visibilitychange → hidden` with a live `restEndMs`, arm a `setTimeout` for
+the remaining time that calls `showNotification()` (with a `vibrate` pattern and a
+stable `tag` so repeats replace rather than stack); on `visibilitychange → visible`,
+clear it and let the existing foreground `beep`/`vibrate` path alert as it does today.
+Guard against a late fire: if the timeout runs after the page was resumed, or
+`Date.now()` is already well past `restEndMs`, drop it — a notification for a rest that
+ended ten minutes ago is noise.
+
+Permission is requested lazily from a real user gesture (an "Enable background alerts"
+tap, not on page load), because iOS *only* grants it from a gesture inside an installed
+PWA, and an unprompted permission dialog on first open is bad manners on both platforms.
+
+### Consequences
+
+- **Android Chrome: the feature works** as asked — locked screen, backgrounded app,
+  notification with vibration, for rest periods under ~5 minutes. Beyond ~5 minutes
+  hidden, Chrome's freezing makes it best-effort. Acceptable; rest timers are short.
+- **iOS: the feature does not work while locked/backgrounded, and cannot be made to
+  without a backend.** The implementation degrades safely (notification suppressed
+  rather than fired late), and iOS keeps what it already has: foreground alert plus
+  Screen Wake Lock holding the screen on during a workout. **This is the open question
+  for the user** — if the daily driver is an iPhone, most of must-have 2's value is
+  unreachable under the no-backend constraint, and the choice is to accept the
+  limitation or to reopen the no-backend invariant (a separate decision, not this one).
+- Vibration on iOS remains impossible regardless of this decision; don't spend effort
+  there.
+- No new dependency, no build step, no backend. The SW is one small static file served
+  from the repo root.
+
+### Scope containment (the part that matters)
+
+Adding a service worker is *additive only* under this decision, and only stays additive
+if these hold. Treat them as standing invariants alongside the ones in `CLAUDE.md`:
+
+- **No `fetch` event handler in the service worker.** This is the important one. The
+  moment the SW intercepts `fetch` it becomes a cache, and a cached `index.html` on
+  GitHub Pages pins users to a stale build with no obvious way out — an offline story
+  this app has never had and doesn't need against a live remote API.
+- **No `push` handler, no `pushManager.subscribe()`.** That's the server-push door; it
+  stays shut per the no-backend invariant.
+- **No Background Sync / Periodic Background Sync.** Both imply a server relationship
+  the app doesn't have; periodic sync is Chrome-only anyway.
+- The SW file is, essentially, install/activate skip-waiting plus a `notificationclick`
+  handler that focuses the app. Growth past that is an architecture change and needs
+  sign-off, same as adding a dependency.
+
+### Alternatives if the iOS ceiling is unacceptable
+
+Only one exists: a small push backend (Option B). That reopens the "no backend"
+invariant *and* the `localStorage` token trade-off recorded above, since a server in the
+picture changes what the safest token story looks like. Not recommended unless the iOS
+gap is genuinely blocking daily use.
 
 ## Source of truth for the app's own history
 

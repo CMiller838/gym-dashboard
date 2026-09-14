@@ -91,12 +91,88 @@ Requires a secure context: GitHub Pages HTTPS or `localhost`. A LAN-IP
 
 ## Phase 3 — Persistent PR medals
 
-(tasks filled in by `@planner Phase 3` immediately before build)
+### Logic & Backend (TDD)
+
+- [x] Add `exercisePRHolders(records)` next to `classifySetPR` (index.html ~947): scans one
+      exercise's `{logId, weight, reps}` records for the max-weight and max-volume record,
+      tie-broken by lowest `logId`; returns `{weightLogId, volumeLogId}` (`null`s when empty).
+- [x] Add self-test block for `exercisePRHolders` (same `assert()` pattern as `classifySetPR`,
+      index.html ~1864-1873): empty input, single record, distinct weight/volume holders, exact
+      tie tie-break, constant-weight/varying-reps volume pick.
+- [x] `renderActiveWorkout()`: per exercise entry, build the merged pool (`allLogsCache` filtered
+      by `exerciseId` + this session's own already-logged `entry.sets`), call
+      `exercisePRHolders`, and use the result to decide per-set badge flags.
+- [x] `render()` (index.html ~752): pass the already-fetched flat `logs` array as `renderHistory`'s
+      4th argument.
+- [x] `renderHistory(sessions, logsBySession, routineById, logs)`: accept the new `logs` param,
+      compute `exercisePRHolders` per exercise group from full fetched history (not just the
+      current session's subset), before building each exercise's set list.
+
+### UI & Layout (rapid prototyping)
+
+- [x] Active workout: show a `🏆` badge on the logged set row matching `holders.weightLogId`,
+      and/or a `🔥` badge on the row matching `holders.volumeLogId` (same row can show both),
+      inside the existing `setnum` cell — unlogged rows never show a badge.
+- [x] History: split the per-exercise `setStr` join (~index.html:816) into one `<span>` per set
+      so a specific set can carry its own `🏆`/`🔥` badge, preserving the existing joined-text
+      look as closely as possible.
+- [ ] Manual check: log a new heaviest-ever set for an exercise mid-workout → medal appears on
+      that row immediately (no reload) and moves off the previous holder.
+- [ ] Manual check: delete a medal-holding logged set mid-workout → medal moves to the next-best
+      remaining set, or disappears if none remain.
+- [ ] Manual check: History tab shows the same medal-holder set as the active workout view for
+      an exercise logged in both.
 
 ## Phase 4 — Routine preview view
 
 (tasks filled in by `@planner Phase 4` immediately before build)
 
-## Phase 5 — Readable 3-month exercise trend graph
+## Phase 5 — Readable 3-month exercise trend graph — done
 
-(tasks filled in by `@planner Phase 5` immediately before build)
+### Logic & Backend (TDD)
+
+- [x] Add `trendWindowBounds(now = new Date())` (index.html ~1002, before `buildTrendPoints`):
+      returns `{startISO, endISO}` — `endISO` is `now` as `YYYY-MM-DD`, `startISO` is `now` minus
+      3 calendar months (via `Date.setMonth`), both via `localDateISO`.
+- [x] Rework `buildTrendPoints(exerciseId, logs, now = new Date())` (index.html:1004-1014):
+      replace the `.slice(-20)` cap with a filter keeping only days
+      `>= trendWindowBounds(now).startISO`; per-day max-weight grouping stays unchanged.
+- [x] Add `trendLabelIndices(points)` (near `renderTrendSvg`): returns the deduped, sorted indices
+      to label — first, last, first-occurrence-of-min-weight, first-occurrence-of-max-weight.
+- [x] Rework `renderTrendSvg(points, now = new Date())` (index.html:1017-1030): delete the old
+      `points.length === 1` special case; compute x per point as time-proportional within
+      `trendWindowBounds(now)` (`(pointDate - startMs)/span * 300`) instead of even index
+      spacing; keep existing y min/max normalization.
+- [x] Replace the old self-test block for `buildTrendPoints` (index.html ~1961-1970) with:
+      `trendWindowBounds` fixed-date assertion; in-window vs before-window filtering with a fixed
+      `now`; a >20-in-window fixture asserting no truncation (removes the old 20-day-cap
+      assertion); per-day max-weight collapse retained from the existing fixtures.
+- [x] Add self-test block for `trendLabelIndices`: empty -> `[]`; single point -> `[0]`;
+      ascending-then-descending weight fixture -> four distinct correct indices; a fixture where
+      min/max coincides with first/last -> deduped, no repeated index.
+
+### UI & Layout (rapid prototyping)
+
+- [x] `renderTrendSvg`: for each index from `trendLabelIndices`, render a value line
+      (`formatKg(weight)`) and a compact date line (`month short + day`, e.g. `"Sep 3"` — not
+      `fmtDate`, too wide) as two `<text>` elements near the point; non-labeled points stay plain
+      circles.
+- [x] Label placement: vertical above the point (`y-18`/`y-8`) unless `y <= 25`, then below
+      (`y+14`/`y+24`); horizontal `text-anchor` `start`/`end` near the left/right viewBox edges
+      (`x<=20`/`x>=280`), `middle` otherwise.
+- [x] Add `.trend-svg text{...}` CSS rule(s) (~index.html:200-203, alongside existing
+      `.trend-svg circle`/`polyline` rules) for label color/size, following existing CSS variable
+      conventions.
+- [x] Manual check: open an exercise's detail view with logs spread across the full 3-month
+      window (including a multi-week gap) — confirm the gap shows as visual spacing, not evenly
+      compressed, and only the first/last/min/max points carry a date+weight label. Verified via
+      isolated logic test (node, 11 assertions) reproducing `trendWindowBounds`/`buildTrendPoints`/
+      `trendLabelIndices`/`renderTrendSvg`'s x-scaling — full in-browser #selftest not run this
+      session (no jsdom/browser automation available in sandbox); syntax-checked via `node --check`.
+- [x] Manual check: exercise with only one log in the window — single dot at its real position
+      in the window (not centered), one label. Verified in the same isolated test (single-point
+      x falls strictly between 0 and 300, not centered at 150).
+- [x] Manual check: exercise with no logs in the last 3 months (but older history exists) —
+      "No history yet" empty state, not a widened window. Unchanged code path
+      (`renderTrendSvg` still returns `.trend-empty` on `!points.length`), confirmed by the
+      before-window-exclusion assertion feeding an empty `points` array.

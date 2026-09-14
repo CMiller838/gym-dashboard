@@ -200,6 +200,8 @@
   .trend-svg{width:100%; height:120px; overflow:visible;}
   .trend-svg polyline{fill:none; stroke:var(--accent); stroke-width:2;}
   .trend-svg circle{fill:var(--accent);}
+  .trend-svg text{font-size:8px; fill:var(--muted);}
+  .trend-svg text.tv{fill:var(--fg); font-weight:600;}
   .trend-empty{text-align:center; color:var(--muted); font-size:13px; padding:24px 0;}
 
   /* --- Feedback: confetti + PR toast --- */
@@ -749,7 +751,7 @@ async function render(){
     });
 
     if(activeTab === "history"){
-      await renderHistory(sessions, logsBySession, routineById);
+      await renderHistory(sessions, logsBySession, routineById, logs);
     } else if(activeTab === "prs"){
       await renderPRs(logs);
     } else if(activeTab === "routines"){
@@ -767,7 +769,7 @@ async function render(){
   }
 }
 
-async function renderHistory(sessions, logsBySession, routineById){
+async function renderHistory(sessions, logsBySession, routineById, logs){
   const content = document.getElementById("content");
   if(!sessions.length){
     content.innerHTML = tabsHtml() + `<div class="empty">No workouts logged yet.<br>Tap Routines → Start to log your first one.</div>`;
@@ -813,9 +815,15 @@ async function renderHistory(sessions, logsBySession, routineById){
     let exHtml = "";
     exIds.forEach((id, i) => {
       const sets = exGroups[id];
-      const setStr = sets.map(x => `${parseFloat(x.weight||0)}kg×${parseFloat(x.repetitions||0)}`).join(", ");
+      const exLogs = logs.filter(l => String(l.exercise) === id)
+        .map(l => ({ logId: l.id, weight: l.weight, reps: l.repetitions }));
+      const holders = exercisePRHolders(exLogs);
+      const setStr = sets.map(x => {
+        const medal = (x.id===holders.weightLogId?' 🏆':'') + (x.id===holders.volumeLogId?' 🔥':'');
+        return `<span class="prset">${parseFloat(x.weight||0)}kg×${parseFloat(x.repetitions||0)}${medal}</span>`;
+      }).join(", ");
       exHtml += `<div class="exrow">
-        <div><div class="exname">${esc(names[i])}</div><div class="exsets">${esc(setStr)}</div></div>
+        <div><div class="exname">${esc(names[i])}</div><div class="exsets">${setStr}</div></div>
         <div class="pill">${sets.length} set${sets.length===1?'':'s'}</div>
       </div>`;
     });
@@ -945,6 +953,24 @@ function classifySetPR(prev, weight, reps){
   return { weightPR: weight > prev.w, volumePR: (weight*reps) > prev.v };
 }
 
+// records: [{logId, weight, reps}] for one exercise only. Returns which logId currently
+// holds the weight-PR and which holds the volume-PR (weight*reps), independently. Ties
+// broken by lowest logId (earliest created). Recomputed fresh each call — never cached.
+function exercisePRHolders(records){
+  let bestWeight = null, bestVolume = null;
+  for(const r of (records||[])){
+    const w = parseFloat(r.weight || 0);
+    const v = w * parseFloat(r.reps || 0);
+    if(!bestWeight || w > bestWeight.w || (w === bestWeight.w && r.logId < bestWeight.logId)){
+      bestWeight = { logId: r.logId, w };
+    }
+    if(!bestVolume || v > bestVolume.v || (v === bestVolume.v && r.logId < bestVolume.logId)){
+      bestVolume = { logId: r.logId, v };
+    }
+  }
+  return { weightLogId: bestWeight ? bestWeight.logId : null, volumeLogId: bestVolume ? bestVolume.logId : null };
+}
+
 // Reduce over entries[].sets, counting only logged sets. Never produces NaN.
 function summaryTotals(entries){
   let sets = 0, reps = 0, volume = 0;
@@ -975,9 +1001,17 @@ function computeExerciseStats(exerciseId, logs, best){
   };
 }
 
+// Fixed trailing 3-calendar-month window ending "now" — shared by buildTrendPoints (filtering)
+// and renderTrendSvg (x-scaling) so both always agree on the same bounds.
+function trendWindowBounds(now = new Date()){
+  const start = new Date(now);
+  start.setMonth(start.getMonth() - 3);
+  return { startISO: localDateISO(start), endISO: localDateISO(now) };
+}
+
 // One point per calendar day this exercise was logged (max weight that day), ascending,
-// capped to the most recent 20 days.
-function buildTrendPoints(exerciseId, logs){
+// filtered to the trailing 3-calendar-month window.
+function buildTrendPoints(exerciseId, logs, now = new Date()){
   const byDay = {};
   for(const l of (logs||[])){
     if(l.exercise !== exerciseId) continue;
@@ -986,23 +1020,42 @@ function buildTrendPoints(exerciseId, logs){
     const dk = dayKey(l.date);
     if(!byDay[dk] || w > byDay[dk]) byDay[dk] = w;
   }
-  return Object.keys(byDay).sort().slice(-20).map(dk => ({ date: dk, weight: byDay[dk] }));
+  const { startISO } = trendWindowBounds(now);
+  return Object.keys(byDay).filter(dk => dk >= startISO).sort().map(dk => ({ date: dk, weight: byDay[dk] }));
+}
+
+// Indices to label on the trend graph: first, last, first-occurrence-of-min, first-occurrence-of-max.
+function trendLabelIndices(points){
+  if(!points || !points.length) return [];
+  const ws = points.map(p => p.weight);
+  const minW = Math.min(...ws), maxW = Math.max(...ws);
+  return [...new Set([0, points.length-1, ws.indexOf(minW), ws.indexOf(maxW)])].sort((a,b) => a-b);
 }
 
 // Hand-built inline SVG, no charting dependency — viewBox 0..300 x 0..100.
-function renderTrendSvg(points){
+function renderTrendSvg(points, now = new Date()){
   if(!points.length) return `<div class="trend-empty">No history yet</div>`;
-  if(points.length === 1){
-    return `<svg viewBox="0 0 300 100" preserveAspectRatio="none" class="trend-svg"><circle cx="150" cy="50" r="4"/></svg>`;
-  }
+  const { startISO, endISO } = trendWindowBounds(now);
+  const startMs = new Date(startISO).getTime(), endMs = new Date(endISO).getTime();
+  const span = endMs - startMs;
   const ws = points.map(p => p.weight);
   const minW = Math.min(...ws), maxW = Math.max(...ws);
   const flat = minW === maxW;
-  const xs = points.map((p,i) => (i/(points.length-1))*300);
+  const xs = points.map(p => ((new Date(p.date).getTime() - startMs) / span) * 300);
   const ys = flat ? points.map(() => 50) : points.map(p => 100 - ((p.weight-minW)/(maxW-minW))*100);
   const pts = xs.map((x,i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(" ");
   const circles = xs.map((x,i) => `<circle cx="${x.toFixed(1)}" cy="${ys[i].toFixed(1)}" r="3"/>`).join("");
-  return `<svg viewBox="0 0 300 100" preserveAspectRatio="none" class="trend-svg"><polyline points="${pts}"/>${circles}</svg>`;
+  const labeled = new Set(trendLabelIndices(points));
+  const labels = xs.map((x,i) => {
+    if(!labeled.has(i)) return "";
+    const y = ys[i];
+    const vy = y <= 25 ? y+14 : y-18, dy = y <= 25 ? y+24 : y-8;
+    const anchor = x <= 20 ? "start" : x >= 280 ? "end" : "middle";
+    const dateLabel = new Date(points[i].date).toLocaleDateString(undefined, {month:'short', day:'numeric'});
+    return `<text x="${x.toFixed(1)}" y="${vy.toFixed(1)}" text-anchor="${anchor}" class="tv">${formatKg(points[i].weight)}</text>`
+      + `<text x="${x.toFixed(1)}" y="${dy.toFixed(1)}" text-anchor="${anchor}">${dateLabel}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 300 100" preserveAspectRatio="none" class="trend-svg"><polyline points="${pts}"/>${circles}${labels}</svg>`;
 }
 
 function showExerciseDetailIdx(idx){
@@ -1186,13 +1239,20 @@ function renderActiveWorkout(){
     const doneCount = entry.sets.filter(s => s.logged).length;
     const isDone = entry.sets.length > 0 && doneCount === entry.sets.length;
 
+    const historical = (allLogsCache || []).filter(l => l.exercise === entry.exerciseId)
+      .map(l => ({ logId: l.id, weight: l.weight, reps: l.repetitions }));
+    const thisSession = entry.sets.filter(s => s.logged && s.logId)
+      .map(s => ({ logId: s.logId, weight: s.weight, reps: s.reps }));
+    const holders = exercisePRHolders(historical.concat(thisSession));
+
     let rowsHtml = "";
     entry.sets.forEach((s, si) => {
       const prev = entry.lastTime[si];
       const prevStr = prev ? `${prev.weight}kg×${prev.reps}` : "—";
       if(s.logged){
+        const medal = (s.logId===holders.weightLogId?' 🏆':'') + (s.logId===holders.volumeLogId?' 🔥':'');
         rowsHtml += `<tr class="setrow logged">
-          <td class="setnum">${si+1}<button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button></td>
+          <td class="setnum">${si+1}${medal}<button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button></td>
           <td class="prevcell">${prevStr}</td>
           <td><input value="${s.weight}" disabled></td>
           <td><input value="${s.reps}" disabled></td>
@@ -1874,6 +1934,20 @@ function runSelfTest(){
   }
 
   {
+    assert(JSON.stringify(exercisePRHolders([])) === JSON.stringify({weightLogId:null, volumeLogId:null}), "exercisePRHolders: empty -> nulls");
+    const single = [{logId:1, weight:50, reps:5}];
+    assert(exercisePRHolders(single).weightLogId === 1 && exercisePRHolders(single).volumeLogId === 1, "exercisePRHolders: single record wins both");
+    const distinct = [{logId:1, weight:100, reps:2}, {logId:2, weight:60, reps:10}];
+    assert(exercisePRHolders(distinct).weightLogId === 1, "exercisePRHolders: heaviest weight wins weightLogId");
+    assert(exercisePRHolders(distinct).volumeLogId === 2, "exercisePRHolders: highest volume wins volumeLogId");
+    const tie = [{logId:5, weight:80, reps:5}, {logId:3, weight:80, reps:5}];
+    assert(exercisePRHolders(tie).weightLogId === 3, "exercisePRHolders: weight tie -> lowest logId wins");
+    assert(exercisePRHolders(tie).volumeLogId === 3, "exercisePRHolders: volume tie -> lowest logId wins");
+    const constWeight = [{logId:1, weight:50, reps:5}, {logId:2, weight:50, reps:8}];
+    assert(exercisePRHolders(constWeight).volumeLogId === 2, "exercisePRHolders: constant weight, higher reps wins volume");
+  }
+
+  {
     const entries = [
       { sets: [{logged:true, weight:50, reps:5}, {logged:false, weight:100, reps:10}, {logged:true, weight:"", reps:5}] }
     ];
@@ -1913,16 +1987,30 @@ function runSelfTest(){
     const s3 = computeExerciseStats(3, logs);
     assert(s3.bestWeight === null && s3.bestVolume === null && s3.totalSets === 0 && s3.lastPerformed === null, "computeExerciseStats: absent exercise -> all null/0");
 
-    const points = buildTrendPoints(1, logs);
+    const fixedNow = new Date(2026,8,15); // 2026-09-15
+    const bounds = trendWindowBounds(fixedNow);
+    assert(bounds.startISO === "2026-06-15" && bounds.endISO === "2026-09-15", "trendWindowBounds: 3 calendar months back");
+
+    const points = buildTrendPoints(1, logs, fixedNow);
     assert(points.length === 2, "buildTrendPoints: one point per distinct day");
     assert(points[0].date === "2026-09-01" && points[0].weight === 110, "buildTrendPoints: same-day max weight collapsed, ascending order");
     assert(points[1].date === "2026-09-03" && points[1].weight === 90, "buildTrendPoints: second day present");
 
+    const beforeWindow = [{exercise:5, weight:"60", reps:"5", date:"2026-01-01"}];
+    assert(buildTrendPoints(5, beforeWindow, fixedNow).length === 0, "buildTrendPoints: log before window excluded");
+
     const manyLogs = [];
     for(let i=0; i<25; i++){
-      manyLogs.push({exercise:9, weight:"50", reps:"5", date:`2026-01-${String(i+1).padStart(2,"0")}`});
+      manyLogs.push({exercise:9, weight:"50", reps:"5", date:`2026-09-${String(i+1).padStart(2,"0")}`});
     }
-    assert(buildTrendPoints(9, manyLogs).length === 20, "buildTrendPoints: capped to most recent 20 days");
+    assert(buildTrendPoints(9, manyLogs, fixedNow).length === 25, "buildTrendPoints: no cap, all in-window days appear");
+
+    assert(trendLabelIndices([]).length === 0, "trendLabelIndices: empty -> []");
+    assert(JSON.stringify(trendLabelIndices([{date:"2026-09-01",weight:50}])) === "[0]", "trendLabelIndices: single point -> [0]");
+    const upDown = [{weight:10},{weight:30},{weight:5},{weight:20}].map((p,i)=>({date:`2026-09-0${i+1}`,weight:p.weight}));
+    assert(JSON.stringify(trendLabelIndices(upDown)) === "[0,1,2,3]", "trendLabelIndices: first/last/min/max all distinct");
+    const tieEdges = [{date:"2026-09-01",weight:10},{date:"2026-09-02",weight:50},{date:"2026-09-03",weight:10}];
+    assert(JSON.stringify(trendLabelIndices(tieEdges)) === "[0,1,2]", "trendLabelIndices: min ties first index, deduped");
   }
 
   assert(formatKg(157.5) === "157.5", "formatKg: keeps one decimal");

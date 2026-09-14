@@ -1,150 +1,50 @@
 # Roadmap
 
-v3 — sequenced from `docs/outline-v3.md` (2026-09). v2's roadmap is complete and
-archived at `.claude/archive/roadmap-v2.md`. Non-goals from the outline (how-to-do-it
-video content, server-push notifications, multi-user) are out of scope for this
-roadmap entirely.
+v3's roadmap is complete and archived at `.claude/archive/roadmap-v3.md`.
 
-Phases are ordered by real dependency, not by size: the data-integrity bug fixes come
-first because a later phase (the summary redesign) displays the exact PR figures they
-correct; timer reliability and the audio overhaul are bundled because firing a rest-timer
-alert "audibly" *is* the audio work; and the cross-cutting interaction-feedback pass
-runs last, once every screen it touches (timer, set logging, summary, history view) is
-in its final v3 shape — mirroring v2's "restyle last" rationale so nothing gets
-polished twice.
+## v4 — Background reliability, PR medals, routine preview
 
-Per `.claude/rules/roadmap-gating.md`, a phase is marked `— done` in the same commit
-as the code that finished it. Detailed specs are written per phase by
-`@planner Phase N`, immediately before that phase is built — not now.
+Source outline: `docs/outline-v4.md`. Fresh round of scope, not a continuation of v3.
 
----
+## Phase 1 — Louder timer audio
 
-## Phase 1 — Data integrity: last-time baseline and PR tracking
+Raise rest-timer audio output further so it cuts through music during a set;
+verify on-device against real playback, not just quiet-room testing.
 
-**Goal:** Fix the two "the app shows/records the wrong thing" bugs before anything
-downstream (the summary redesign) renders the values they produce.
+## Phase 2 — Background/locked-phone timer alerts [opus?]
 
-Covers must-haves 2 (last-time baseline overwrite) and 3 (PR = heaviest weight in any
-completed set, not just a dedicated max test).
+Fire vibration + an OS notification when the rest timer ends while the app is
+backgrounded or the phone is locked, via the minimal service worker decided in
+ADR 001 (`docs/ARCHITECTURE.md`) — `showNotification()` only, armed by a
+page-side `setTimeout` on visibility change, Android-only, no `fetch`/`push`/
+background-sync handlers. Sequenced after Phase 1 as the other half of
+timer-alert work, but kept as its own phase rather than merged with it: this is
+the app's first service worker and a genuine architectural fork, while Phase 1
+is a same-day on-device audio tweak — collapsing them would drag the simple
+task under the same weight as the fork.
 
-Both are logic fixes to existing state/calc code — `entry.lastTime` and the
-`sessionBest` / `computeBestByExercise` path (index.html) — not new screens, so they're
-bundled as one small, low-risk phase ahead of everything that reads their output.
+## Phase 3 — Persistent PR medals
 
-**Exit condition:** the Previous-set value shown next to an in-progress set stays pinned
-to the last *completed* session until the current set is itself completed; a PR is
-recognized from any completed set's weight, not only a dedicated max-test set.
+Mark the exact set that is the current weight/volume PR with a medal in both
+the active routine's set list and history, recomputed (not cached) so edits or
+deletions move or remove the medal. Builds on `classifySetPR` from v3 Phase 1.
 
----
+## Phase 4 — Routine preview view
 
-## Phase 2 — Rest-timer reliability and audio overhaul [opus?]
+Depends on Phase 3. Tapping a routine's name outside an active session opens a
+read-only reuse of the active-workout start view (exercises + last-time-hit),
+with each exercise row also showing its current PR from Phase 3's data — no
+session/log is created.
 
-**Goal:** Make rest-timer alerts impossible to miss while the app is open and in view,
-and give every timer/cue/alert a distinct, louder sound.
+## Phase 5 — Readable 3-month exercise trend graph — done
 
-Covers must-haves 1 (reliable rest-timer alerts) and 4 (audio overhaul).
+Rework `buildTrendPoints`/`renderTrendSvg` to show actual values/dates on the
+points and pull from a fixed trailing 3-calendar-month window instead of the
+last 20 logged days. Independent of Phases 1-4; sequenced last since it has no
+dependency on the rest of this batch.
 
-Bundled because they're the same code path: the timer already stores an absolute
-`restEndMs` end-timestamp and polls it every second (`tickRestTimers`), but today it
-silently clears when it reaches zero — no sound fires at all. Making the alert fire
-"audibly" and adding a Wake Lock + `visibilitychange` catch-up is inseparable from
-building the distinct/louder sounds it needs to play; splitting them would mean touching
-`tickRestTimers` and the existing `beep()` helper twice.
-
-**Scope flag — background/locked-phone case is explicitly out.** Per the outline, this
-phase covers only the tab-open-and-visible case (Wake Lock + absolute-timestamp
-self-correction + visibilitychange catch-up), not a fully backgrounded or locked phone.
-If on-device testing during this phase shows that bar isn't met, escalating to a service
-worker is a scoped `@architect` decision made at that point, not assumed here — tagged
-`[opus?]` because that potential escalation is a genuine architectural fork (this app
-has no service worker today by design), not because the lighter tier itself is complex.
-
-**Exit condition:** a rest timer fires a distinct, audible alert whenever the app is
-open and in view, including after being backgrounded and returning within the same
-tab session; set-completion, PR, and timer-end sounds are all distinguishable from each
-other at a higher default volume.
-
----
-
-## Phase 3 — In-workout exercise history/trend view (Status: logic/UI built and self-tested; manual on-device verification outstanding, see `tasks.md`)
-
-**Goal:** Tapping an exercise name during an active routine opens a detail view with
-lifetime stats and a trend graph for that exercise.
-
-Covers must-have 5.
-
-Mostly additive — a new detail screen reading existing logged-set history — so it has
-no hard dependency on Phases 1–2, but is sequenced after Phase 1 so the trend data it
-displays (PR/history figures) is already correct rather than needing a second pass.
-
-**Exit condition:** tapping an exercise name mid-workout opens a history/trend view
-showing lifetime stats and a graph for that exercise, escaped per the app's
-API-derived-string invariant.
-
----
-
-## Phase 4 — Polished summary view (Status: logic/CSS built and self-tested; manual on-device verification outstanding, see `tasks.md`)
-
-**Goal:** Redesign the workout-completion screen with smoother transitions/animations
-and cleaner stat formatting.
-
-Covers must-have 6.
-
-Depends on Phase 1: the summary displays PR and volume figures, which must already be
-correct before the redesign locks in how they're formatted — otherwise the formatting
-work gets redone once the underlying figures change. Independent of Phases 2 and 3.
-
-**Exit condition:** the post-workout summary screen has polished transitions and stat
-formatting, with all existing summary data (volume, PRs, muscle groups) still correct
-and intact.
-
----
-
-## Phase 5 — Feedback on every touched interaction (Status: CSS built app-wide at explicit user request, broader than the original "what v3 touches" scope below; manual on-device verification outstanding, see `tasks.md`)
-
-**Goal:** Every screen/interaction v3 actually modified — timer, set logging, summary,
-history view — gets a visible/audible response to the interaction.
-
-Covers must-have 7.
-
-Runs last by definition: its scope is explicitly "what v3 touches," which isn't fully
-known until Phases 1–4 land. Doing it earlier risks covering an interaction that a
-later phase then changes, requiring the feedback work to be redone — the same
-double-work reasoning v2 used to run its UI pass last.
-
-**Exit condition:** every interaction touched by Phases 1–4 (timer start/end, set
-logging, summary appearance, opening the history view) has a visible or audible
-response; no untouched part of the app is retrofitted.
-
----
-
-## Phase 6 — Nice-to-haves: stalled-workout auto-complete, routine reordering
-
-**Goal:** Pick up the two lower-priority items the outline explicitly scopes into v3
-("later in v3") once the must-haves above ship.
-
-Covers the outline's two nice-to-haves: auto-completing a session/exercise that's been
-open past 3 hours, and drag-and-drop reordering of routines/exercise lists.
-
-Both are independent of Phases 1–5 (session-timeout housekeeping and routine-list
-ordering don't share code with the timer/PR/summary/history work above) — sequenced
-last only because the outline ranks them below the must-haves, not because of a code
-dependency.
-
-**Exit condition:** a session/exercise left open past 3 hours auto-completes instead of
-polluting history/stats; routines and exercise lists can be reordered by drag-and-drop.
-
----
-
-## Assumptions and flags (planner, v3 roadmap pass)
-
-- Read against the live `index.html`: `restEndMs`/`tickRestTimers` already use an
-  absolute end-timestamp and poll every second, but no sound or Wake Lock exists yet on
-  timer completion, and `visibilitychange` today only re-syncs the elapsed-workout
-  clock (`updateTimer`), not a rest-timer catch-up alert — Phase 2's "reliable alerts"
-  work is real, not just a volume/tone tweak.
-- Phase 2's `[opus?]` tag is a heads-up for a possible service-worker escalation, not a
-  verdict — `@planner Phase 2` and testing decide for real whether the lighter tier
-  (Wake Lock + timestamp + visibilitychange) meets the reliability bar.
-- Nice-to-haves are sequenced as Phase 6 rather than deferred to `docs/FUTURE.md`,
-  since the outline frames them as "this project, later in v3," not out of scope.
+Verified: `trendWindowBounds`/`buildTrendPoints`/`trendLabelIndices`/`renderTrendSvg`'s
+time-proportional x-scaling reproduced and asserted in an isolated Node logic test (11
+checks, all passing); full file syntax-checked with `node --check`. In-browser
+`#selftest` and visual manual checks not run this session (no browser automation
+available in the sandbox).
