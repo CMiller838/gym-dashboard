@@ -96,6 +96,30 @@
   .startbtn{background:var(--accent); color:#08131f; border:none; border-radius:10px;
     padding:10px 16px; font-weight:700; font-size:12.5px; white-space:nowrap; text-transform:uppercase; letter-spacing:.03em;}
   .startbtn:disabled{opacity:0.5;}
+  .rbtns{display:flex; gap:8px; margin-top:12px;}
+  .smallbtn{background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px;
+    padding:8px 12px; font-size:12.5px; font-weight:600;}
+  .smallbtn.danger{color:var(--danger);}
+  .redit{padding:0 16px 120px;}
+  .redit-bar{display:flex; justify-content:space-between; align-items:center; padding:14px 0;
+    position:sticky; top:0; background:var(--bg, #0f1113); z-index:5;}
+  .redit-bar .back{background:none; border:none; color:var(--text); font-size:15px; font-weight:600; padding:8px 0;}
+  .rinput{width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--card2);
+    color:var(--text); font-size:14px; margin-bottom:10px;}
+  .re-day{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin:12px 0;}
+  .re-dayhead{display:flex; gap:8px; align-items:center;}
+  .re-dayhead .rinput{margin-bottom:0; font-weight:700;}
+  .re-item{background:var(--card2); border-radius:10px; padding:10px; margin-top:8px;}
+  .re-iname{font-weight:600; font-size:14px; margin-bottom:8px;}
+  .re-ctrl{display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted);}
+  .re-ctrl label{display:flex; align-items:center; gap:6px;}
+  .re-num{width:62px; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--card);
+    color:var(--text); font-size:14px; text-align:center;}
+  .re-ctrl .sp{flex:1;}
+  .re-ctrl .movebtn{background:var(--card); border:1px solid var(--border); color:var(--muted);
+    border-radius:8px; width:34px; height:34px; font-size:14px; padding:0;}
+  .prset.tappable{cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
+  .sessdel{background:none; border:none; color:var(--muted); font-size:14px; padding:2px 6px; margin-left:6px;}
 
   .empty{color:var(--muted); text-align:center; padding:40px 20px; font-size:13.5px;}
   .loading{color:var(--muted); text-align:center; padding:40px 20px; font-size:13.5px;}
@@ -820,7 +844,7 @@ async function renderHistory(sessions, logsBySession, routineById, logs){
       const holders = exercisePRHolders(exLogs);
       const setStr = sets.map(x => {
         const medal = (x.id===holders.weightLogId?' 🏆':'') + (x.id===holders.volumeLogId?' 🔥':'');
-        return `<span class="prset">${parseFloat(x.weight||0)}kg×${parseFloat(x.repetitions||0)}${medal}</span>`;
+        return `<span class="prset tappable" onclick="editLoggedSet(${x.id})">${parseFloat(x.weight||0)}kg×${parseFloat(x.repetitions||0)}${medal}</span>`;
       }).join(", ");
       exHtml += `<div class="exrow">
         <div><div class="exname">${esc(names[i])}</div><div class="exsets">${setStr}</div></div>
@@ -834,7 +858,7 @@ async function renderHistory(sessions, logsBySession, routineById, logs){
     card.innerHTML = `
       <div class="row-top">
         <div class="routine-name">${routine ? esc(routine.name) : "Workout"}</div>
-        <div class="date">${fmtDate(sessionStartKey(s))}</div>
+        <div class="date">${fmtDate(sessionStartKey(s))}<button class="sessdel" onclick="deleteSession(${s.id})" title="Delete workout">🗑</button></div>
       </div>
       <div class="meta">${exIds.length} exercise${exIds.length===1?'':'s'}${s.impression ? " · felt " + ({1:"bad",2:"ok",3:"good"}[s.impression]||"") : ""}</div>
       <div class="exlist">${exHtml}</div>
@@ -879,12 +903,14 @@ async function renderPRs(logs){
 }
 
 function renderRoutines(routines){
+  routinesCache = routines;
   const content = document.getElementById("content");
   if(!routines.length){
     content.innerHTML = tabsHtml() + `<div class="empty">No routines found.</div>`;
     return;
   }
-  let html = tabsHtml() + `<section id="routineList"><h2>Your Routines</h2>`;
+  let html = tabsHtml() + `<section id="routineList"><h2>Your Routines</h2>
+    <button class="addsetbtn" style="margin:0 0 12px" onclick="openRoutineEditor(null)">+ New routine</button>`;
   const byCreatedDesc = (a,b) => new Date(b.created) - new Date(a.created);
   const orderIds = loadRoutineOrder();
   const orderIndex = new Map(orderIds.map((id,i) => [id,i]));
@@ -904,6 +930,10 @@ function renderRoutines(routines){
         </div>
         <button class="startbtn" onclick="startWorkout(${r.id})">▶ Start</button>
       </div>
+      <div class="rbtns">
+        <button class="smallbtn" onclick="openRoutineEditor(${r.id})">✎ Edit</button>
+        <button class="smallbtn danger" onclick="deleteRoutine(${r.id})">🗑 Delete</button>
+      </div>
     </div>`;
   }
   html += `</section>`;
@@ -913,6 +943,303 @@ function renderRoutines(routines){
     saveRoutineOrder(newOrder.map(i => sorted[i].id));
     renderRoutines(routines);
   });
+}
+
+// ---------- ROUTINE EDITOR (create / edit / delete routines and their days & exercises) ----------
+// Model: RE = { id|null, name, description, origName, origDesc, dirty, removedDays:[dayId],
+//   days:[{ id|null, name, origName, removedItems:[{slotId,slotEntryId}],
+//     items:[{ slotId, slotEntryId, setsId, restId, exerciseId, name, sets, rest, origSets, origRest, origSlotOrder }] }] }
+// Save walks the model and writes only differences. Ids are written back into the model as
+// they are created, so a save that fails halfway can be retried without duplicating anything.
+let RE = null;
+let routinesCache = [];
+
+function reUid(){ return "k" + Math.random().toString(36).slice(2, 8); }
+
+async function openRoutineEditor(id){
+  const act = getActive();
+  if(act && id !== null && act.routineId === id){ alert("This routine has a workout in progress. Finish it first."); return; }
+  const content = document.getElementById("content");
+  content.innerHTML = `<div class="loading">Loading routine…</div>`;
+  try{
+    if(id === null){
+      RE = { id: null, name: "", description: "", origName: "", origDesc: "", dirty: false, removedDays: [],
+        days: [{ id: null, key: reUid(), name: "Day 1", origName: "", items: [], removedItems: [] }] };
+    } else {
+      const st = await api(`/routine/${id}/structure/?format=json`);
+      const days = [];
+      for(const d of (st.days || [])){
+        if(d.is_rest) continue;
+        const items = [];
+        for(const slot of (d.slots || []).slice().sort((a,b) => a.order - b.order)){
+          for(const e of (slot.entries || []).slice().sort((a,b) => a.order - b.order)){
+            const sc = (e.set_nr_configs || [])[0], rc = (e.rest_configs || [])[0];
+            const sets = Math.max(1, Math.round(parseConfigValue(e.set_nr_configs, 3)));
+            const rest = Math.round(parseConfigValue(e.rest_configs, 90));
+            items.push({ key: reUid(), slotId: slot.id, slotEntryId: e.id, setsId: sc ? sc.id : null, restId: rc ? rc.id : null,
+              exerciseId: e.exercise, name: "", sets, rest, origSets: sets, origRest: rest, origSlotOrder: slot.order });
+          }
+        }
+        days.push({ id: d.id, key: reUid(), name: d.name || "", origName: d.name || "", items, removedItems: [] });
+      }
+      const all = days.flatMap(d => d.items);
+      const names = await mapWithConcurrency(all, 5, it => exerciseName(it.exerciseId));
+      all.forEach((it, i) => { it.name = names[i]; });
+      RE = { id, name: st.name || "", description: st.description || "", origName: st.name || "", origDesc: st.description || "",
+        dirty: false, removedDays: [], days };
+    }
+    renderRoutineEditor();
+  }catch(e){
+    alert("Couldn't load routine: " + e.message);
+    render();
+  }
+}
+
+function renderRoutineEditor(){
+  const content = document.getElementById("content");
+  let html = `<div class="redit">
+    <div class="redit-bar">
+      <button class="back" onclick="closeRoutineEditor()">‹ Back</button>
+      <button class="startbtn" id="reSaveBtn" onclick="saveRoutineEditor()">Save</button>
+    </div>
+    <input class="rinput" placeholder="Routine name" value="${esc(RE.name)}" oninput="RE.name=this.value;RE.dirty=true">
+    <input class="rinput" placeholder="Description (optional) — e.g. 40s work / 20s rest" value="${esc(RE.description)}" oninput="RE.description=this.value;RE.dirty=true">`;
+  RE.days.forEach((d, di) => {
+    html += `<div class="re-day">
+      <div class="re-dayhead">
+        <input class="rinput" placeholder="Day name" value="${esc(d.name)}" oninput="RE.days[${di}].name=this.value;RE.dirty=true">
+        <button class="smallbtn danger" onclick="reRemoveDay(${di})">🗑</button>
+      </div>`;
+    d.items.forEach((it, ii) => {
+      html += `<div class="re-item">
+        <div class="re-iname">${esc(it.name)}</div>
+        <div class="re-ctrl">
+          <label>Sets <input class="re-num" type="number" inputmode="numeric" min="1" value="${it.sets}" oninput="reSetNum(${di},${ii},'sets',this.value)"></label>
+          <label>Rest s <input class="re-num" type="number" inputmode="numeric" min="0" value="${it.rest}" oninput="reSetNum(${di},${ii},'rest',this.value)"></label>
+          <span class="sp"></span>
+          <button class="movebtn" ${ii === 0 ? "disabled" : ""} onclick="reMove(${di},${ii},-1)">↑</button>
+          <button class="movebtn" ${ii === d.items.length - 1 ? "disabled" : ""} onclick="reMove(${di},${ii},1)">↓</button>
+          <button class="movebtn" onclick="reRemoveItem(${di},${ii})">✕</button>
+        </div>
+      </div>`;
+    });
+    html += `<button class="addsetbtn" onclick="reAddExercise(${di})">+ Add exercise</button></div>`;
+  });
+  html += `<button class="addsetbtn" onclick="reAddDay()">+ Add day</button></div>`;
+  content.innerHTML = html;
+  window.scrollTo(0, 0);
+}
+
+function reSetNum(di, ii, field, v){
+  const n = parseInt(v, 10);
+  RE.days[di].items[ii][field] = isNaN(n) ? (field === "sets" ? 1 : 0) : Math.max(field === "sets" ? 1 : 0, n);
+  RE.dirty = true;
+}
+function reMove(di, ii, dir){
+  const items = RE.days[di].items, j = ii + dir;
+  if(j < 0 || j >= items.length) return;
+  [items[ii], items[j]] = [items[j], items[ii]];
+  RE.dirty = true;
+  renderRoutineEditor();
+}
+function reRemoveItem(di, ii){
+  const d = RE.days[di], it = d.items[ii];
+  if(it.slotEntryId) d.removedItems.push({ slotId: it.slotId, slotEntryId: it.slotEntryId });
+  d.items.splice(ii, 1);
+  RE.dirty = true;
+  renderRoutineEditor();
+}
+function reRemoveDay(di){
+  const d = RE.days[di];
+  if(d.items.length && !confirm(`Remove "${d.name || "this day"}" and its ${d.items.length} exercise(s)? Applied when you Save.`)) return;
+  if(d.id) RE.removedDays.push(d.id);
+  RE.days.splice(di, 1);
+  RE.dirty = true;
+  renderRoutineEditor();
+}
+function reAddDay(){
+  RE.days.push({ id: null, key: reUid(), name: `Day ${RE.days.length + 1}`, origName: "", items: [], removedItems: [] });
+  RE.dirty = true;
+  renderRoutineEditor();
+}
+function reAddExercise(di){
+  pickExercise((id, name) => {
+    RE.days[di].items.push({ key: reUid(), slotId: null, slotEntryId: null, setsId: null, restId: null,
+      exerciseId: id, name, sets: 3, rest: 90, origSets: 3, origRest: 90, origSlotOrder: null });
+    RE.dirty = true;
+    renderRoutineEditor();
+  });
+}
+function closeRoutineEditor(){
+  if(RE && RE.dirty && !confirm("Discard your unsaved routine changes?")) return;
+  RE = null;
+  activeTab = "routines";
+  render();
+}
+
+// Generic exercise search sheet (same index as the in-workout "Add exercise").
+async function pickExercise(onPick){
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `<div class="overlay-sheet">
+    <h3>Pick exercise</h3>
+    <input id="pxSearch" type="text" placeholder="Search exercises…" class="rinput">
+    <div id="pxResults"><div class="empty" style="padding:20px;">Loading exercises…</div></div>
+    <button class="cancel" id="pxCancel">Cancel</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  const close = () => { if(overlay.parentNode) document.body.removeChild(overlay); };
+  document.getElementById("pxCancel").onclick = close;
+  const resultsEl = document.getElementById("pxResults");
+  let items = [];
+  try{ items = await loadExerciseIndex(); }
+  catch(e){ resultsEl.innerHTML = `<div class="empty">Couldn't load exercise list (${esc(e.message)}).</div>`; return; }
+  function show(filter){
+    const f = filter.trim().toLowerCase();
+    const m = (f ? items.filter(x => x.name.toLowerCase().includes(f)) : items).slice(0, 60);
+    if(!m.length){ resultsEl.innerHTML = `<div class="empty" style="padding:20px;">No matches.</div>`; return; }
+    resultsEl.innerHTML = m.map(x => `<div class="opt" data-id="${x.id}">${esc(x.name)}</div>`).join("");
+    resultsEl.querySelectorAll(".opt").forEach(el => {
+      el.onclick = () => {
+        const id = parseInt(el.dataset.id, 10);
+        const item = items.find(x => x.id === id);
+        close();
+        onPick(id, item ? item.name : `Exercise #${id}`);
+      };
+    });
+  }
+  show("");
+  const input = document.getElementById("pxSearch");
+  input.addEventListener("input", () => show(input.value));
+  input.focus();
+}
+
+async function saveRoutineEditor(){
+  const name = RE.name.trim();
+  if(!name){ alert("Give the routine a name."); return; }
+  const btn = document.getElementById("reSaveBtn");
+  if(btn){ btn.disabled = true; btn.textContent = "Saving…"; }
+  try{
+    if(RE.id === null){
+      const t = new Date(), e = new Date(t.getTime() + 119 * 86400000); // wger rejects routines spanning > 120 days
+      const r = await apiPost(`/routine/?format=json`, { name, description: RE.description, start: localDateISO(t), end: localDateISO(e) });
+      RE.id = r.id; RE.origName = name; RE.origDesc = RE.description;
+    } else if(name !== RE.origName || RE.description !== RE.origDesc){
+      await apiPatch(`/routine/${RE.id}/`, { name, description: RE.description });
+      RE.origName = name; RE.origDesc = RE.description;
+    }
+    while(RE.removedDays.length){
+      await apiDelete(`/day/${RE.removedDays[0]}/`);
+      RE.removedDays.shift();
+    }
+    for(const d of RE.days){
+      if(!d.id){
+        const nd = await apiPost(`/day/?format=json`, { routine: RE.id, name: d.name || "Day", is_rest: false });
+        d.id = nd.id; d.origName = d.name;
+      } else if(d.name !== d.origName){
+        await apiPatch(`/day/${d.id}/`, { name: d.name });
+        d.origName = d.name;
+      }
+      while(d.removedItems.length){
+        const b = d.removedItems[0];
+        await apiDelete(`/slot-entry/${b.slotEntryId}/`);
+        if(!d.items.some(it => it.slotId === b.slotId)) await apiDelete(`/slot/${b.slotId}/`);
+        d.removedItems.shift();
+      }
+      let order = 0;
+      const seenSlots = new Set();
+      for(const it of d.items){
+        if(it.slotEntryId){
+          if(!seenSlots.has(it.slotId)){
+            seenSlots.add(it.slotId);
+            order++;
+            if(order !== it.origSlotOrder){ await apiPatch(`/slot/${it.slotId}/`, { order }); }
+            it.origSlotOrder = order;
+          }
+          if(it.sets !== it.origSets){
+            if(it.setsId) await apiPatch(`/sets-config/${it.setsId}/`, { value: it.sets });
+            else { const c = await apiPost(`/sets-config/?format=json`, reCfg(it.slotEntryId, it.sets)); it.setsId = c.id; }
+            it.origSets = it.sets;
+          }
+          if(it.rest !== it.origRest){
+            if(it.restId) await apiPatch(`/rest-config/${it.restId}/`, { value: it.rest });
+            else if(it.rest > 0){ const c = await apiPost(`/rest-config/?format=json`, reCfg(it.slotEntryId, it.rest)); it.restId = c.id; }
+            it.origRest = it.rest;
+          }
+        } else {
+          const slot = await apiPost(`/slot/?format=json`, { day: d.id, order: ++order });
+          it.slotId = slot.id; it.origSlotOrder = order;
+          const se = await apiPost(`/slot-entry/?format=json`, { slot: slot.id, exercise: it.exerciseId, order: 1, type: "normal" });
+          it.slotEntryId = se.id;
+          const sc = await apiPost(`/sets-config/?format=json`, reCfg(se.id, it.sets));
+          it.setsId = sc.id; it.origSets = it.sets;
+          if(it.rest > 0){ const rc = await apiPost(`/rest-config/?format=json`, reCfg(se.id, it.rest)); it.restId = rc.id; }
+          it.origRest = it.rest;
+        }
+      }
+    }
+    allLogsCache = null;
+    RE = null;
+    activeTab = "routines";
+    render();
+  }catch(e){
+    if(btn){ btn.disabled = false; btn.textContent = "Save"; }
+    alert("Save failed: " + e.message + "\nNothing is duplicated if you tap Save again.");
+  }
+}
+function reCfg(slotEntryId, value){
+  return { slot_entry: slotEntryId, iteration: 1, value, operation: "r", step: "na", repeat: false };
+}
+
+async function deleteRoutine(id){
+  const act = getActive();
+  if(act && act.routineId === id){ alert("This routine has a workout in progress. Finish or discard it first."); return; }
+  const r = routinesCache.find(x => x.id === id);
+  let warn = "";
+  try{
+    const s = await api(`/workoutsession/?routine=${id}&limit=1&format=json`);
+    if(s && s.count) warn = `\n\n${s.count} logged workout(s) used this routine; wger may remove them with it.`;
+  }catch(e){ /* just skip the warning */ }
+  if(!confirm(`Delete routine "${r ? r.name : id}"?${warn}`)) return;
+  try{
+    await apiDelete(`/routine/${id}/`);
+    allLogsCache = null;
+    render();
+  }catch(e){ alert("Couldn't delete routine: " + e.message); }
+}
+
+// ---------- Past workouts: delete a session, edit a logged set ----------
+async function deleteSession(id){
+  if(!confirm("Delete this workout and all its logged sets? This can't be undone.")) return;
+  try{
+    const logs = (allLogsCache || []).filter(l => l.session === id);
+    await mapWithConcurrency(logs, 4, l => apiDelete(`/workoutlog/${l.id}/`));
+    await apiDelete(`/workoutsession/${id}/`);
+    allLogsCache = null;
+    render();
+  }catch(e){
+    alert("Couldn't delete workout: " + e.message);
+    allLogsCache = null;
+    render();
+  }
+}
+async function editLoggedSet(logId){
+  const l = (allLogsCache || []).find(x => x.id === logId);
+  if(!l) return;
+  const cur = `${parseFloat(l.weight || 0)} x ${parseFloat(l.repetitions || 0)}`;
+  const ans = prompt("Edit set (weight x reps). Type 'delete' to remove it.", cur);
+  if(ans === null) return;
+  try{
+    if(ans.trim().toLowerCase() === "delete"){
+      await apiDelete(`/workoutlog/${logId}/`);
+    } else {
+      const m = ans.trim().match(/^([\d.]+)\s*[x×*,\s]\s*([\d.]+)$/i);
+      if(!m){ alert("Use the format: 60 x 8"); return; }
+      await apiPatch(`/workoutlog/${logId}/`, { weight: parseFloat(m[1]), repetitions: parseFloat(m[2]) });
+    }
+    allLogsCache = null;
+    render();
+  }catch(e){ alert("Couldn't save: " + e.message); }
 }
 
 // ---------- ACTIVE WORKOUT ----------
@@ -1261,8 +1588,8 @@ function renderActiveWorkout(){
         rowsHtml += `<tr class="setrow logged">
           <td class="setnum">${si+1}${medal}<button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button></td>
           <td class="prevcell">${prevStr}</td>
-          <td><input value="${s.weight}" disabled></td>
-          <td><input value="${s.reps}" disabled></td>
+          <td><input type="number" inputmode="decimal" id="lw_${idx}_${si}" value="${s.weight}" onchange="editSet(${idx},${si})"></td>
+          <td><input type="number" inputmode="decimal" id="lr_${idx}_${si}" value="${s.reps}" onchange="editSet(${idx},${si})"></td>
           <td class="actioncell">
             <button class="logbtn" onclick="unlogSet(${idx},${si})">✓</button>
           </td>
@@ -1419,6 +1746,7 @@ function addSetRow(idx){
 }
 
 async function removeSetRow(idx, si){
+  await flushPendingLogs();
   const w = getActive();
   if(!w) return;
   const entry = w.entries[idx];
@@ -1454,6 +1782,7 @@ function moveExercise(idx, dir){
 }
 
 async function removeExercise(idx){
+  await flushPendingLogs();
   const w = getActive();
   if(!w) return;
   const entry = w.entries[idx];
@@ -1626,18 +1955,26 @@ async function logSet(idx, si){
   const originX = anchorRect.left + anchorRect.width/2;
   const originY = anchorRect.top + anchorRect.height/2;
 
-  try{
-    const log = await apiPost(`/workoutlog/?format=json`, {
+  // Optimistic: mark the set logged and give feedback immediately; the POST to wger runs in
+  // the background (pendingLogs) and fills in logId, or reverts the set if it fails.
+  {
+    const cid = "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const exerciseId = entry.exerciseId;
+    const prevBest = w.best[exerciseId];
+    const prRecBefore = (w.prs || []).find(r => r.exerciseId === exerciseId);
+    const prRecSnapshot = prRecBefore ? JSON.stringify(prRecBefore) : null;
+    const payload = {
       session: w.sessionId,
       routine: w.routineId,
-      exercise: entry.exerciseId,
+      exercise: exerciseId,
       slot_entry: entry.slotEntryId || undefined,
       weight: weightVal,
       repetitions: repsVal,
       date: new Date().toISOString()
-    });
+    };
     set.logged = true;
-    set.logId = log.id;
+    set.logId = null;
+    set.cid = cid;
     set.weight = weightVal;
     set.reps = repsVal;
     entry.restEndMs = Date.now() + (entry.restSeconds*1000);
@@ -1668,17 +2005,120 @@ async function logSet(idx, si){
     setActive(w);
     renderActiveWorkout();
     triggerSetFeedback(isPR, originX, originY, entry.name, label, detail);
-  }catch(e){
-    alert("Couldn't log set: " + e.message);
+
+    const p = apiPost(`/workoutlog/?format=json`, payload).then(log => {
+      const cur = getActive();
+      const s = cur && findSetByCid(cur, cid);
+      if(s){ s.logId = log.id; setActive(cur); } // no re-render: it would wipe what's being typed in other rows
+      else if(log && log.id){ apiDelete(`/workoutlog/${log.id}/`).catch(() => {}); } // set was removed meanwhile
+    }).catch(e => {
+      const cur = getActive();
+      const s = cur && findSetByCid(cur, cid);
+      if(s){
+        s.logged = false; s.logId = null; delete s.cid;
+        if(prevBest) cur.best[exerciseId] = prevBest; else delete cur.best[exerciseId];
+        if(isPR){
+          cur.prs = (cur.prs || []).filter(r => r.exerciseId !== exerciseId);
+          if(prRecSnapshot) cur.prs.push(JSON.parse(prRecSnapshot));
+        }
+        setActive(cur);
+        renderActiveWorkout();
+      }
+      alert("Couldn't log set (it was un-ticked, try again): " + e.message);
+    }).finally(() => { pendingLogs.delete(p); });
+    pendingLogs.add(p);
   }
 }
 
+// Optimistic set logging: POSTs still in flight. Anything that needs a set's logId (untick,
+// delete, finish, discard) must `await flushPendingLogs()` first.
+const pendingLogs = new Set();
+async function flushPendingLogs(){ if(pendingLogs.size) await Promise.all([...pendingLogs]); }
+function findSetByCid(w, cid){
+  for(const e of w.entries) for(const s of e.sets) if(s.cid === cid) return s;
+  return null;
+}
+
+// Rebuild the "best ever" baseline for one exercise after an edit (history minus this
+// session's own logs, plus this session's current sets), so a mistyped-too-high weight
+// doesn't leave a phantom record behind. Without the history cache we can only raise it.
+function recomputeBest(w, exerciseId){
+  const entries = w.entries.filter(e => e.exerciseId === exerciseId);
+  const sess = [];
+  entries.forEach(e => e.sets.forEach(s => { if(s.logged) sess.push(s); }));
+  if(!allLogsCache){
+    sess.forEach(s => {
+      const cur = w.best[exerciseId] || { w: 0, v: 0 };
+      w.best[exerciseId] = { w: Math.max(cur.w, s.weight), v: Math.max(cur.v, s.weight * s.reps) };
+    });
+    return;
+  }
+  const sessIds = new Set(sess.map(s => s.logId).filter(Boolean));
+  const logs = allLogsCache.filter(l => l.exercise === exerciseId && !sessIds.has(l.id))
+    .concat(sess.map(s => ({ exercise: exerciseId, weight: s.weight, repetitions: s.reps })));
+  const b = computeBestByExercise(logs)[exerciseId];
+  if(b) w.best[exerciseId] = b; else delete w.best[exerciseId];
+}
+
+// Edit weight/reps of an already-ticked set (inputs on logged rows fire this on change).
+// Optimistic like logSet: local state updates now, PATCH goes out in the background and
+// reverts the values if it fails. No re-render on success (it would eat a tap on another row).
+function editSet(idx, si){
+  const w = getActive();
+  if(!w) return;
+  const entry = w.entries[idx];
+  const set = entry && entry.sets[si];
+  if(!set || !set.logged) return;
+  const wi = document.getElementById(`lw_${idx}_${si}`);
+  const ri = document.getElementById(`lr_${idx}_${si}`);
+  if(!wi || !ri) return;
+  const nw = parseFloat(wi.value), nr = parseFloat(ri.value);
+  if(isNaN(nw) || isNaN(nr) || nw < 0 || nr < 0){
+    wi.value = set.weight; ri.value = set.reps;
+    alert("Enter a valid weight and reps");
+    return;
+  }
+  if(nw === set.weight && nr === set.reps) return;
+  const old = { weight: set.weight, reps: set.reps };
+  const exerciseId = entry.exerciseId;
+  if(!set.cid) set.cid = "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const cid = set.cid;
+  set.weight = nw; set.reps = nr;
+  recomputeBest(w, exerciseId);
+  setActive(w);
+
+  const waitFor = [...pendingLogs]; // the set's own POST may still be in flight
+  const p = (async () => {
+    await Promise.all(waitFor);
+    const cur = getActive();
+    const s = cur && findSetByCid(cur, cid);
+    if(!s || !s.logged || !s.logId) return; // removed or reverted meanwhile
+    try{
+      await apiPatch(`/workoutlog/${s.logId}/?format=json`, { weight: nw, repetitions: nr });
+      const c = (allLogsCache || []).find(l => l.id === s.logId);
+      if(c){ c.weight = nw; c.repetitions = nr; }
+    }catch(e){
+      const cur2 = getActive();
+      const s2 = cur2 && findSetByCid(cur2, cid);
+      if(s2 && s2.weight === nw && s2.reps === nr){
+        s2.weight = old.weight; s2.reps = old.reps;
+        recomputeBest(cur2, exerciseId);
+        setActive(cur2);
+        renderActiveWorkout();
+      }
+      alert("Couldn't save the edit (reverted): " + e.message);
+    }
+  })().finally(() => { pendingLogs.delete(p); });
+  pendingLogs.add(p);
+}
+
 async function unlogSet(idx, si){
+  await flushPendingLogs();
   const w = getActive();
   if(!w) return;
   const entry = w.entries[idx];
   const set = entry.sets[si];
-  if(!set.logged) return;
+  if(!set.logged || !set.logId) return;
   if(!confirm("Unmark this set as logged? (the row stays so you can re-enter it; use ✕ to remove the row entirely)")) return;
   try{
     await apiDelete(`/workoutlog/${set.logId}/`);
@@ -1770,6 +2210,7 @@ function closeSummary(){
 }
 
 async function finishWorkout(){
+  await flushPendingLogs();
   const w = getActive();
   if(!w) return;
   const totalSets = w.entries.reduce((sum,e) => sum + e.sets.filter(s => s.logged).length, 0);
@@ -1848,6 +2289,8 @@ async function applyRoutineSave(w, plan){
 }
 
 async function finalizeWorkout(w){
+  await flushPendingLogs();
+  w = getActive() || w; // re-read: an in-flight log may have just filled in a logId or reverted
   releaseWakeLock();
   try{
     // ponytail: cross-midnight sessions (start before, end after local midnight) store
@@ -1876,6 +2319,7 @@ async function autoCompleteStaleSession(w){
 }
 
 async function discardWorkout(){
+  await flushPendingLogs();
   const w = getActive();
   if(!w) return;
   if(!confirm("Discard this workout? Logged sets will be deleted.")) return;
