@@ -1108,7 +1108,8 @@ async function buildEntriesFromDay(day, allLogs){
     for(const entry of (slot.entries||[]).sort((a,b)=>a.order-b.order)){
       const restSeconds = parseConfigValue(entry.rest_configs, 90);
       const setNrTarget = parseConfigValue(entry.set_nr_configs, 3);
-      flat.push({ slotEntryId: entry.id, exerciseId: entry.exercise, restSeconds, setNrTarget });
+      const setsCfg = (entry.set_nr_configs||[])[0];
+      flat.push({ slotEntryId: entry.id, slotId: slot.id, setsConfigId: setsCfg ? setsCfg.id : null, exerciseId: entry.exercise, restSeconds, setNrTarget });
     }
   }
   const names = await mapWithConcurrency(flat, 5, e => exerciseName(e.exerciseId));
@@ -1123,6 +1124,9 @@ async function buildEntriesFromDay(day, allLogs){
     }
     return {
       slotEntryId: f.slotEntryId,
+      slotId: f.slotId,
+      setsConfigId: f.setsConfigId,
+      baseSets: setCount,
       exerciseId: f.exerciseId,
       name: names[i],
       restSeconds: f.restSeconds || 90,
@@ -1192,6 +1196,9 @@ async function launchDay(structure, day){
       dayName: day.name || structure.name,
       startedAtMs: Date.now(),
       entries,
+      // Snapshot of the routine day as it was when the workout started, so finishing can
+      // offer to save any changes (order / sets / added / removed exercises) back to it.
+      baseline: entries.map(e => ({ slotEntryId: e.slotEntryId, slotId: e.slotId, setsConfigId: e.setsConfigId, baseSets: e.baseSets, name: e.name })),
       best: computeBestByExercise(logs), // exerciseId -> {w,v} best ever logged, updated live as PRs happen
       prs: []
     };
@@ -1767,7 +1774,77 @@ async function finishWorkout(){
   if(!w) return;
   const totalSets = w.entries.reduce((sum,e) => sum + e.sets.filter(s => s.logged).length, 0);
   if(!confirm(`Finish workout? ${totalSets} set${totalSets===1?'':'s'} logged.`)) return;
+  const changes = diffAgainstRoutine(w);
+  const save = changes.length > 0 && confirm(
+    `You changed this session from "${w.dayName}":\n\n• ${changes.join("\n• ")}\n\nSave these changes to the routine for next time?`);
+  const plan = save ? planRoutineSave(w) : null;
   await finalizeWorkout(w);
+  if(plan){
+    try{
+      await applyRoutineSave(w, plan);
+      alert("Routine updated.");
+    }catch(e){
+      alert("Workout saved, but couldn't update the routine (" + e.message + "). It's unchanged or partly changed on wger.");
+    }
+  }
+}
+
+// ---- save session changes back to the routine ----
+// Entries that count: routine exercises (even if untouched), plus added exercises that
+// actually had a set logged. Set counts compare logged sets, only when at least one was logged.
+function relevantEntries(w){
+  return w.entries.filter(e => e.slotEntryId || e.sets.some(s => s.logged));
+}
+function loggedCount(e){ return e.sets.filter(s => s.logged).length; }
+
+function diffAgainstRoutine(w){
+  if(!w.baseline) return []; // workout started before this feature — no snapshot to compare to
+  const out = [];
+  const cur = relevantEntries(w);
+  const curIds = new Set(cur.filter(e => e.slotEntryId).map(e => e.slotEntryId));
+  w.baseline.filter(b => !curIds.has(b.slotEntryId)).forEach(b => out.push(`Removed ${b.name}`));
+  cur.filter(e => !e.slotEntryId).forEach(e => out.push(`Added ${e.name}`));
+  const baseOrder = w.baseline.map(b => b.slotEntryId).filter(id => curIds.has(id));
+  const curOrder = cur.filter(e => e.slotEntryId).map(e => e.slotEntryId);
+  if(baseOrder.join() !== curOrder.join()) out.push("Changed exercise order");
+  cur.filter(e => e.slotEntryId && loggedCount(e) > 0 && loggedCount(e) !== e.baseSets)
+    .forEach(e => out.push(`${e.name}: ${e.baseSets} → ${loggedCount(e)} sets`));
+  return out;
+}
+
+function planRoutineSave(w){ return { entries: relevantEntries(w).map(e => JSON.parse(JSON.stringify(e))) }; }
+
+async function applyRoutineSave(w, plan){
+  const keepIds = new Set(plan.entries.filter(e => e.slotEntryId).map(e => e.slotEntryId));
+  // 1. delete removed exercises (and their slot if nothing else lives in it)
+  for(const b of w.baseline){
+    if(keepIds.has(b.slotEntryId)) continue;
+    await apiDelete(`/slot-entry/${b.slotEntryId}/`);
+    const stillUsed = w.baseline.some(o => o !== b && o.slotId === b.slotId && keepIds.has(o.slotEntryId));
+    if(!stillUsed) await apiDelete(`/slot/${b.slotId}/`);
+  }
+  // 2. walk the final order: reorder existing slots, create slots for added exercises, update set counts
+  let order = 0;
+  const seenSlots = new Set();
+  for(const e of plan.entries){
+    const n = loggedCount(e);
+    if(e.slotEntryId){
+      if(!seenSlots.has(e.slotId)){
+        seenSlots.add(e.slotId);
+        await apiPatch(`/slot/${e.slotId}/`, { order: ++order });
+      }
+      if(n > 0 && n !== e.baseSets){
+        if(e.setsConfigId) await apiPatch(`/sets-config/${e.setsConfigId}/`, { value: n });
+        else await apiPost(`/sets-config/`, { slot_entry: e.slotEntryId, iteration: 1, value: n, operation: "r", step: "na", repeat: false });
+      }
+    } else {
+      const slot = await apiPost(`/slot/`, { day: w.dayId, order: ++order });
+      const se = await apiPost(`/slot-entry/`, { slot: slot.id, exercise: e.exerciseId, order: 1, type: "normal" });
+      await apiPost(`/sets-config/`, { slot_entry: se.id, iteration: 1, value: Math.max(1, n), operation: "r", step: "na", repeat: false });
+      if(e.restSeconds) await apiPost(`/rest-config/`, { slot_entry: se.id, iteration: 1, value: e.restSeconds, operation: "r", step: "na", repeat: false });
+    }
+  }
+  allLogsCache = null;
 }
 
 async function finalizeWorkout(w){
