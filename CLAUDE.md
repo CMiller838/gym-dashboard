@@ -51,6 +51,10 @@ No lint/build/formatter — it's a single HTML file with inline JS/CSS.
 - **wger's public search endpoints are unreliable** — exercise lookup goes through
   `/exerciseinfo/` pagination (`apiAll`), not a direct search call. Don't "simplify"
   this back to a search endpoint.
+- **Lazy session creation**: the wger `workoutsession` is created by `ensureSession()` on
+  the first ticked set, never when the workout starts, and a workout finished/auto-completed
+  with 0 logged sets is discarded (any empty session deleted). A 0-set workout must never
+  exist on wger. The "unfinished session already exists" error now surfaces on the first tick.
 - **Duplicate-session guard**: starting a routine checks for an existing unfinished
   session for that routine/day before creating a new one (wger allows concurrent
   sessions from other clients, e.g. the wger mobile app) — don't remove this check.

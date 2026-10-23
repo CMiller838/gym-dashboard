@@ -1517,15 +1517,12 @@ async function launchDay(structure, day){
     allLogsCache = logs;
     const entries = await buildEntriesFromDay(day, logs);
 
-    const session = await apiPost(`/workoutsession/?format=json`, {
-      routine: structure.id,
-      day: day.id,
-      date: todayISO(),
-      time_start: nowTimeISO()
-    });
-
+    // No wger session yet: it is created by ensureSession() when the first set is ticked, so
+    // a workout with 0 sets never exists on wger.
     const w = {
-      sessionId: session.id,
+      sessionId: null,
+      startDate: todayISO(),
+      startTime: nowTimeISO(),
       routineId: structure.id,
       routineName: structure.name,
       dayId: day.id,
@@ -2009,7 +2006,6 @@ async function logSet(idx, si){
     const prRecBefore = (w.prs || []).find(r => r.exerciseId === exerciseId);
     const prRecSnapshot = prRecBefore ? JSON.stringify(prRecBefore) : null;
     const payload = {
-      session: w.sessionId,
       routine: w.routineId,
       exercise: exerciseId,
       slot_entry: entry.slotEntryId || undefined,
@@ -2053,7 +2049,7 @@ async function logSet(idx, si){
     flashKey = null;
     triggerSetFeedback(isPR, originX, originY, entry.name, label, detail);
 
-    const p = apiPost(`/workoutlog/?format=json`, payload).then(log => {
+    const p = ensureSession().then(sid => apiPost(`/workoutlog/?format=json`, {...payload, session: sid})).then(log => {
       const cur = getActive();
       const s = cur && findSetByCid(cur, cid);
       if(s){ s.logId = log.id; setActive(cur); } // no re-render: it would wipe what's being typed in other rows
@@ -2071,7 +2067,11 @@ async function logSet(idx, si){
         setActive(cur);
         renderActiveWorkout();
       }
-      alert("Couldn't log set (it was un-ticked, try again): " + e.message);
+      if(String(e.message).includes("500") || String(e.message).toLowerCase().includes("unique")){
+        alert("Couldn't log set (it was un-ticked). You may already have an unfinished session today for this routine (started elsewhere, like the wger app). Finish or delete that session first.");
+      } else {
+        alert("Couldn't log set (it was un-ticked, try again): " + e.message);
+      }
     }).finally(() => { pendingLogs.delete(p); });
     pendingLogs.add(p);
   }
@@ -2081,6 +2081,32 @@ async function logSet(idx, si){
 // delete, finish, discard) must `await flushPendingLogs()` first.
 const pendingLogs = new Set();
 async function flushPendingLogs(){ if(pendingLogs.size) await Promise.all([...pendingLogs]); }
+
+// The wger session is created lazily, on the first ticked set. Concurrent first ticks share
+// one POST (sessionCreating). Resolves to the session id.
+let sessionCreating = null;
+function ensureSession(){
+  const w0 = getActive();
+  if(w0 && w0.sessionId) return Promise.resolve(w0.sessionId);
+  if(!w0) return Promise.reject(new Error("no active workout"));
+  if(!sessionCreating){
+    sessionCreating = (async () => {
+      const w = getActive();
+      const s = await apiPost(`/workoutsession/?format=json`, {
+        routine: w.routineId,
+        day: w.dayId,
+        date: w.startDate || todayISO(),
+        time_start: w.startTime || nowTimeISO()
+      });
+      const cur = getActive();
+      if(cur){ cur.sessionId = s.id; setActive(cur); }
+      else apiDelete(`/workoutsession/${s.id}/`).catch(() => {}); // workout ended meanwhile
+      return s.id;
+    })().finally(() => { sessionCreating = null; });
+  }
+  return sessionCreating;
+}
+function loggedTotal(w){ return w.entries.reduce((n,e) => n + e.sets.filter(s => s.logged).length, 0); }
 function findSetByCid(w, cid){
   for(const e of w.entries) for(const s of e.sets) if(s.cid === cid) return s;
   return null;
@@ -2260,7 +2286,13 @@ async function finishWorkout(){
   await flushPendingLogs();
   const w = getActive();
   if(!w) return;
-  const totalSets = w.entries.reduce((sum,e) => sum + e.sets.filter(s => s.logged).length, 0);
+  const totalSets = loggedTotal(w);
+  if(totalSets === 0){
+    // Nothing logged: no workout. Discard instead of finishing (deletes any empty session).
+    if(!confirm("No sets logged — discard this workout?")) return;
+    await finalizeWorkout(w);
+    return;
+  }
   if(!confirm(`Finish workout? ${totalSets} set${totalSets===1?'':'s'} logged.`)) return;
   const changes = diffAgainstRoutine(w);
   const save = changes.length > 0 && confirm(
@@ -2339,6 +2371,18 @@ async function finalizeWorkout(w){
   await flushPendingLogs();
   w = getActive() || w; // re-read: an in-flight log may have just filled in a logId or reverted
   releaseWakeLock();
+  if(loggedTotal(w) === 0){
+    // 0-set workouts are never kept: delete the (empty) wger session if one was created.
+    if(w.sessionId){ try{ await apiDelete(`/workoutsession/${w.sessionId}/`); }catch(e){ /* nothing to keep either way */ } }
+    clearActive();
+    if(restTickInterval) clearInterval(restTickInterval);
+    const bar0 = document.getElementById("finishBar");
+    if(bar0) bar0.remove();
+    activeTab = "history";
+    allLogsCache = null;
+    render();
+    return;
+  }
   try{
     // ponytail: cross-midnight sessions (start before, end after local midnight) store
     // time_end < time_start — wger has no way to represent that; not fixed here.
@@ -2381,7 +2425,7 @@ async function discardWorkout(){
   }
   let sessionDeleted = true;
   try{
-    await apiDelete(`/workoutsession/${w.sessionId}/`);
+    if(w.sessionId) await apiDelete(`/workoutsession/${w.sessionId}/`);
   }catch(e){ sessionDeleted = false; }
   clearActive();
   if(restTickInterval) clearInterval(restTickInterval);
