@@ -294,13 +294,11 @@
   @keyframes rowIn{from{opacity:0;} to{opacity:1;}}
   @keyframes rowLoggedFlash{from{background-color:rgba(79,176,255,.35);} to{background-color:transparent;}}
   @keyframes cardDonePulse{from{box-shadow:0 0 0 0 rgba(79,176,255,.45);} to{box-shadow:0 0 0 8px rgba(79,176,255,0);}}
-  .wex-card{animation:cardIn .2s cubic-bezier(.34,1.56,.64,1) backwards;}
-  .wex-card:nth-child(1){animation-delay:0s} .wex-card:nth-child(2){animation-delay:.02s}
-  .wex-card:nth-child(3){animation-delay:.04s} .wex-card:nth-child(4){animation-delay:.06s}
-  .wex-card:nth-child(5){animation-delay:.08s}
-  .wex-card.done{animation:cardIn .2s cubic-bezier(.34,1.56,.64,1) backwards, cardDonePulse .6s ease-out;}
-  .setrow{animation:rowIn .16s ease;}
-  .setrow.logged{animation:rowIn .16s ease, rowLoggedFlash .6s ease-out;}
+  /* The list is rebuilt on EVERY tick, so only the row/card that was just ticked may animate
+     (.flash / .pulse, set for one render by renderActiveWorkout). An entrance animation on
+     every card/row replays the whole screen's fade-in per tick and reads as a delay. */
+  .setrow.flash{animation:rowLoggedFlash .6s ease-out;}
+  .wex-card.pulse{animation:cardDonePulse .6s ease-out;}
 
   /* Remaining static moments: the setup/connect screen, and empty/loading states that
      every tab shows at least once while data fetches — previously a flat instant swap
@@ -1547,6 +1545,7 @@ function fmtRest(sec){
   return m>0 ? `${m}min ${s}s` : `${s}s`;
 }
 
+let flashKey = null; // "idx_si" of the set just ticked; only that row/card animates for one render
 function renderActiveWorkout(){
   const w = getActive();
   if(!w){ render(); return; }
@@ -1585,7 +1584,7 @@ function renderActiveWorkout(){
       const prevStr = prev ? `${prev.weight}kg×${prev.reps}` : "—";
       if(s.logged){
         const medal = (s.logId===holders.weightLogId?' 🏆':'') + (s.logId===holders.volumeLogId?' 🔥':'');
-        rowsHtml += `<tr class="setrow logged">
+        rowsHtml += `<tr class="setrow logged${flashKey === idx+"_"+si ? " flash" : ""}">
           <td class="setnum">${si+1}${medal}<button class="delbtn" onclick="removeSetRow(${idx},${si})">✕</button></td>
           <td class="prevcell">${prevStr}</td>
           <td><input type="number" inputmode="decimal" id="lw_${idx}_${si}" value="${s.weight}" onchange="editSet(${idx},${si})"></td>
@@ -1617,7 +1616,8 @@ function renderActiveWorkout(){
          </div>`
       : "";
 
-    html += `<div class="wex-card ${isDone?'done':''}">
+    const pulse = isDone && flashKey && flashKey.startsWith(idx+"_");
+    html += `<div class="wex-card ${isDone?'done':''}${pulse?' pulse':''}">
       <div class="wex-top">
         <span class="drag-handle">⠿</span>
         <div class="wex-move">
@@ -2003,7 +2003,9 @@ async function logSet(idx, si){
     }
 
     setActive(w);
+    flashKey = idx + "_" + si;
     renderActiveWorkout();
+    flashKey = null;
     triggerSetFeedback(isPR, originX, originY, entry.name, label, detail);
 
     const p = apiPost(`/workoutlog/?format=json`, payload).then(log => {
