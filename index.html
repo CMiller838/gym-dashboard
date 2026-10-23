@@ -408,37 +408,48 @@ function saveRoutineOrder(ids){ localStorage.setItem(ROUTINE_ORDER_KEY, JSON.str
 // itemSelector inside containerEl. Native Pointer Events (not HTML5 dragstart/dragover)
 // because HTML5 native DnD is unreliable on iOS Safari and this is a mobile-first PWA.
 // Idempotent — safe to call again after every re-render, since each render rebuilds the DOM.
+function bindDragItem(containerEl, item){
+  const st = containerEl._drag;
+  if(!st) return;
+  const handle = item.querySelector(".drag-handle") || item;
+  handle.addEventListener("pointerdown", e => {
+    st.dragEl = item;
+    st.order = Array.from(containerEl.querySelectorAll(st.itemSelector));
+    item.classList.add("dragging");
+    try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+    e.preventDefault();
+  });
+}
 function attachDragReorder(containerEl, itemSelector, onReorder){
-  let dragEl = null, order = [];
-  containerEl.querySelectorAll(itemSelector).forEach(item => {
-    const handle = item.querySelector(".drag-handle") || item;
-    handle.addEventListener("pointerdown", e => {
-      dragEl = item;
-      order = Array.from(containerEl.querySelectorAll(itemSelector));
-      dragEl.classList.add("dragging");
-      try{ handle.setPointerCapture(e.pointerId); }catch(err){}
-      e.preventDefault();
+  // Container listeners are added once per container (re-renders used to stack up a new
+  // set on every call); selector/callback are refreshed each call.
+  let st = containerEl._drag;
+  if(!st){
+    st = containerEl._drag = { dragEl: null, order: [], itemSelector, onReorder };
+    containerEl.addEventListener("pointermove", e => {
+      if(!st.dragEl) return;
+      const siblings = st.order.filter(el => el !== st.dragEl);
+      let next = null;
+      for(const sib of siblings){
+        const rect = sib.getBoundingClientRect();
+        if(e.clientY < rect.top + rect.height / 2){ next = sib; break; }
+      }
+      containerEl.insertBefore(st.dragEl, next);
     });
-  });
-  containerEl.addEventListener("pointermove", e => {
-    if(!dragEl) return;
-    const siblings = order.filter(el => el !== dragEl);
-    let next = null;
-    for(const sib of siblings){
-      const rect = sib.getBoundingClientRect();
-      if(e.clientY < rect.top + rect.height / 2){ next = sib; break; }
-    }
-    containerEl.insertBefore(dragEl, next);
-  });
-  const finishDrag = () => {
-    if(!dragEl) return;
-    dragEl.classList.remove("dragging");
-    const newOrder = Array.from(containerEl.querySelectorAll(itemSelector)).map(el => order.indexOf(el));
-    dragEl = null;
-    onReorder(newOrder);
-  };
-  containerEl.addEventListener("pointerup", finishDrag);
-  containerEl.addEventListener("pointercancel", finishDrag);
+    const finishDrag = () => {
+      if(!st.dragEl) return;
+      st.dragEl.classList.remove("dragging");
+      const newOrder = Array.from(containerEl.querySelectorAll(st.itemSelector)).map(el => st.order.indexOf(el));
+      st.dragEl = null;
+      st.onReorder(newOrder);
+    };
+    containerEl.addEventListener("pointerup", finishDrag);
+    containerEl.addEventListener("pointercancel", finishDrag);
+  }
+  st.itemSelector = itemSelector;
+  st.onReorder = onReorder;
+  st.dragEl = null;
+  containerEl.querySelectorAll(itemSelector).forEach(item => bindDragItem(containerEl, item));
 }
 
 const REQUEST_TIMEOUT_MS = 20000;
@@ -1545,6 +1556,22 @@ function fmtRest(sec){
   return m>0 ? `${m}min ${s}s` : `${s}s`;
 }
 
+// Index the full wger history by exercise ONCE per allLogsCache array. Previously every tick
+// re-filtered thousands of logs once per exercise on the main thread (slow on phones).
+let _histSrc = null, _histMap = null;
+function histByExercise(logs){
+  if(!logs) return new Map();
+  if(_histSrc !== logs){
+    _histMap = new Map();
+    for(const l of logs){
+      let a = _histMap.get(l.exercise);
+      if(!a){ a = []; _histMap.set(l.exercise, a); }
+      a.push({ logId: l.id, weight: l.weight, reps: l.repetitions });
+    }
+    _histSrc = logs;
+  }
+  return _histMap;
+}
 let flashKey = null; // "idx_si" of the set just ticked; only that row/card animates for one render
 function renderActiveWorkout(){
   const w = getActive();
@@ -1568,12 +1595,45 @@ function renderActiveWorkout(){
   `;
 
   let html = "";
-  w.entries.forEach((entry, idx) => {
+  w.entries.forEach((entry, idx) => { html += cardHtml(w, idx); });
+
+  html += `<button class="addexbtn" onclick="openAddExercise()">+ Add Exercise</button>`;
+  html += `<div style="height:80px"></div>`;
+  const content = document.getElementById("content");
+  content.innerHTML = html;
+
+  attachDragReorder(content, ".wex-card", (newOrder) => {
+    const active = getActive();
+    if(!active) return;
+    active.entries = newOrder.map(i => active.entries[i]);
+    setActive(active);
+    renderActiveWorkout();
+  });
+
+  const finishBar = document.getElementById("finishBar");
+  if(!finishBar){
+    const bar = document.createElement("div");
+    bar.className = "finish-bar";
+    bar.id = "finishBar";
+    bar.innerHTML = `<button onclick="finishWorkout()">Finish Workout</button>`;
+    document.body.appendChild(bar);
+  }
+
+  updateTimer();
+
+  if(restTickInterval) clearInterval(restTickInterval);
+  restTickInterval = setInterval(tickRestTimers, 1000);
+  acquireWakeLock();
+}
+
+// One exercise card's HTML. Split out so a tick can rebuild just that card (renderCardAt)
+// instead of the whole list.
+function cardHtml(w, idx){
+  const entry = w.entries[idx];
     const doneCount = entry.sets.filter(s => s.logged).length;
     const isDone = entry.sets.length > 0 && doneCount === entry.sets.length;
 
-    const historical = (allLogsCache || []).filter(l => l.exercise === entry.exerciseId)
-      .map(l => ({ logId: l.id, weight: l.weight, reps: l.repetitions }));
+    const historical = histByExercise(allLogsCache).get(entry.exerciseId) || [];
     const thisSession = entry.sets.filter(s => s.logged && s.logId)
       .map(s => ({ logId: s.logId, weight: s.weight, reps: s.reps }));
     const holders = exercisePRHolders(historical.concat(thisSession));
@@ -1617,7 +1677,7 @@ function renderActiveWorkout(){
       : "";
 
     const pulse = isDone && flashKey && flashKey.startsWith(idx+"_");
-    html += `<div class="wex-card ${isDone?'done':''}${pulse?' pulse':''}">
+    return `<div class="wex-card ${isDone?'done':''}${pulse?' pulse':''}">
       <div class="wex-top">
         <span class="drag-handle">⠿</span>
         <div class="wex-move">
@@ -1638,35 +1698,20 @@ function renderActiveWorkout(){
       </table>
       <button class="addsetbtn" onclick="addSetRow(${idx})">+ Add Set</button>
     </div>`;
-  });
+}
 
-  html += `<button class="addexbtn" onclick="openAddExercise()">+ Add Exercise</button>`;
-  html += `<div style="height:80px"></div>`;
+// Fast path for ticking a set: swap only the affected card (plus nothing else) so the browser
+// re-lays-out one card, not the whole workout, and half-typed values in other cards survive.
+function renderCardAt(idx){
+  const w = getActive();
   const content = document.getElementById("content");
-  content.innerHTML = html;
-
-  attachDragReorder(content, ".wex-card", (newOrder) => {
-    const active = getActive();
-    if(!active) return;
-    active.entries = newOrder.map(i => active.entries[i]);
-    setActive(active);
-    renderActiveWorkout();
-  });
-
-  const finishBar = document.getElementById("finishBar");
-  if(!finishBar){
-    const bar = document.createElement("div");
-    bar.className = "finish-bar";
-    bar.id = "finishBar";
-    bar.innerHTML = `<button onclick="finishWorkout()">Finish Workout</button>`;
-    document.body.appendChild(bar);
-  }
-
-  updateTimer();
-
-  if(restTickInterval) clearInterval(restTickInterval);
-  restTickInterval = setInterval(tickRestTimers, 1000);
-  acquireWakeLock();
+  const cards = content ? content.querySelectorAll(".wex-card") : [];
+  if(!w || cards.length !== w.entries.length || !cards[idx]){ renderActiveWorkout(); return; }
+  const tmp = document.createElement("div");
+  tmp.innerHTML = cardHtml(w, idx);
+  const fresh = tmp.firstElementChild;
+  content.replaceChild(fresh, cards[idx]);
+  bindDragItem(content, fresh);
 }
 
 function updateTimer(){
@@ -2004,7 +2049,7 @@ async function logSet(idx, si){
 
     setActive(w);
     flashKey = idx + "_" + si;
-    renderActiveWorkout();
+    renderCardAt(idx);
     flashKey = null;
     triggerSetFeedback(isPR, originX, originY, entry.name, label, detail);
 
